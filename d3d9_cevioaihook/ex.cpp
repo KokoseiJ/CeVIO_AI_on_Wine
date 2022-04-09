@@ -86,7 +86,7 @@ BOOL hook_EnumServicesStatusW(
 
 	if (cbBufSize != 0) {
 		lpServices[0] = {
-			(WCHAR *)L"Not Winmgmt lmao",
+			(WCHAR *)L"Winmgmt",
 			(WCHAR *)L"Windows Management Instrumentation",
 			{
 				0x30, // Apparently not included in MSDN Docs!
