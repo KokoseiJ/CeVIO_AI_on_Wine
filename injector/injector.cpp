@@ -14,6 +14,7 @@ int main() {
 	ZeroMemory(&si, sizeof(si));
 	si.cb = sizeof(si);
 	ZeroMemory(&proc_info, sizeof(proc_info));
+	printf("[*] Injector started.\n");
 
 	if (!CreateProcessW(
 		exe_name,
@@ -27,9 +28,11 @@ int main() {
 		&si,
 		&proc_info
 	)) {
-		printf("Failed to create a process. error = 0x%08x\n", GetLastError());
+		printf("[*] Failed to create a process. error = 0x%08x\n", GetLastError());
 		exit(1);
 	}
+
+	printf("[*] Created a process.\n");
 
 	remote_space = VirtualAllocEx(
 		proc_info.hProcess,
@@ -39,9 +42,11 @@ int main() {
 		PAGE_READWRITE
 	);
 	if (remote_space == NULL) {
-		printf("Failed to allocate a memory.\n");
+		printf("[*] Failed to allocate a memory.\n");
 		exit(1);
 	}
+
+	printf("[*] Allocated a memory.\n");
 
 	if (!WriteProcessMemory(
 		proc_info.hProcess,
@@ -50,9 +55,11 @@ int main() {
 		dll_len,
 		NULL
 	)) {
-		printf("Failed to write to memory.\n");
+		printf("[*] Failed to write to memory.\n");
 		exit(1);
 	}
+
+	printf("[*] Wrote to a memory.\n");
 
 	thread_handle = CreateRemoteThread(
 		proc_info.hProcess,
@@ -64,21 +71,27 @@ int main() {
 		NULL
 	);
 	if (thread_handle == NULL) {
-		printf("Failed to create a thread.\n");
+		printf("[*] Failed to create a thread.\n");
 		exit(1);
 	}
 
+	printf("[*] Created a thread.\n");
+
 	if (WaitForSingleObject(thread_handle, INFINITE) == WAIT_FAILED) {
-		printf("DLL execution has failed.\n");
+		printf("[*] DLL execution has failed.\n");
 		exit(1);
 	}
 
 	CloseHandle(thread_handle);
 
+	printf("[*] Successfully executed a thread.\n");
+
 	if (ResumeThread(proc_info.hThread) == -1) {
-		printf("ResumeThread failed\n");
+		printf("[*] ResumeThread failed\n");
 		exit(1);
 	}
+
+	printf("[*] Resumed a target process.\n");
 
 	VirtualFreeEx(proc_info.hProcess, remote_space, 0, MEM_RELEASE);
 	CloseHandle(proc_info.hProcess);
