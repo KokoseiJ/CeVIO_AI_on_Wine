@@ -1,8 +1,10 @@
 #include "ex.h"
 
-HANDLE console_stdout;
+HANDLE consoneHandle;
 
 BOOL(*orig_EnumServicesStatusW)(SC_HANDLE, DWORD, DWORD, LPENUM_SERVICE_STATUSW, DWORD, LPDWORD, LPDWORD, LPDWORD) = NULL;
+ULONG(*orig_GetAdaptersAddresses)(ULONG, ULONG, PVOID, PIP_ADAPTER_ADDRESSES, PULONG) = NULL;
+
 
 DWORD print(const char* printstr) {
 	DWORD printstr_length;
@@ -11,7 +13,7 @@ DWORD print(const char* printstr) {
 	printstr_length = static_cast<DWORD>(strlen(printstr));
 
 	WriteConsole(
-		console_stdout,
+		consoneHandle,
 		printstr,
 		printstr_length,
 		&written_chars,
@@ -28,12 +30,12 @@ HANDLE setup_console() {
 
 	AllocConsole();
 	SetConsoleTitle("CeVIO AI INJECTION DEBUG CONSOLE");
-	console_stdout = GetStdHandle(STD_OUTPUT_HANDLE);
+	consoneHandle = GetStdHandle(STD_OUTPUT_HANDLE);
 
 	sprintf_s(
 		printarr,
 		128 * sizeof(char),
-		"[*] (setup_console) \t| Console Attached. StdHandle: %d\n", (int)console_stdout
+		"[*] (setup_console) \t| Console Attached. StdHandle: %d\n", (int)consoneHandle
 	);
 	print(printarr);
 
@@ -41,6 +43,7 @@ HANDLE setup_console() {
 
 	return stdout;
 }
+
 
 BOOL hook_EnumServicesStatusW(
 	SC_HANDLE hSCManager,              // IN
@@ -100,14 +103,14 @@ BOOL hook_EnumServicesStatusW(
 		};
 
 		for (i = 0; i < *lpServicesReturned; i++) {
-			if (wcscmp(lpServices[i].lpServiceName, L"Winmgmt") != 0) continue;
+			// if (lpServices[i].lpServiceName != "Winmgmt") continue;
 			service = lpServices[i];
 			status = service.ServiceStatus;
 			sprintf_s(
 				printarr,
 				256 * sizeof(char),
-				"[*] (hook_EnumServicesStatusW) \t| Winmgmt, Display: %ls, Service | Type: %lx, State: %lx, Accepted: %lx, Exitcode: %lx, SpecExit: %lx, Check: %lx, Waithint: %lx",
-				service.lpDisplayName, status.dwServiceType, status.dwCurrentState, status.dwControlsAccepted, status.dwWin32ExitCode, status.dwServiceSpecificExitCode, status.dwCheckPoint, status.dwWaitHint
+				"[*] (hook_EnumServicesStatusW) \t| %ls, Display: %ls, Service | Type: %lx, State: %lx, Accepted: %lx, Exitcode: %lx, SpecExit: %lx, Check: %lx, Waithint: %lx",
+				service.lpServiceName, service.lpDisplayName, status.dwServiceType, status.dwCurrentState, status.dwControlsAccepted, status.dwWin32ExitCode, status.dwServiceSpecificExitCode, status.dwCheckPoint, status.dwWaitHint
 			);
 			print(printarr);
 		}
@@ -118,6 +121,37 @@ BOOL hook_EnumServicesStatusW(
 
 	return true;
 }
+
+ULONG hook_GetAdaptersAddresses(
+	ULONG Family,                           // IN
+	ULONG Flags,                            // IN
+	PVOID Reserved,                         // IN
+	PIP_ADAPTER_ADDRESSES AdapterAddresses, // IN/OUT
+	PULONG SizePointer                      // IN/OUT
+) {
+	unsigned long origBufSize = *SizePointer, rtnval;
+	char* printarr;
+
+	printarr = (char*)calloc(256, sizeof(char));
+	if (printarr == NULL) return 0;
+
+	sprintf_s(
+		printarr,
+		256 * sizeof(char),
+		"[*] (hook_GetAdaptersAddresses) \t| Called. Family: %lx, Flag: %lx, BufSize: %ld\n",
+		Family, Flags, origBufSize
+	);
+	print(printarr);
+
+	rtnval = orig_GetAdaptersAddresses(Family, Flags, Reserved, AdapterAddresses, SizePointer);
+
+	if (Flags == (GAA_FLAG_INCLUDE_WINS_INFO | GAA_FLAG_INCLUDE_GATEWAYS) && origBufSize != 0) {
+	}
+
+	free(printarr);
+	return rtnval;
+}
+
 
 void initialize_hook() {
 	if (MH_Initialize() != MH_OK) {
@@ -141,8 +175,20 @@ void create_hook() {
 		print("[*](create_hook) \t| Failed to enable EnumServicesStatusW.\n");
 		exit(1);
 	}
-
 	print("[*] (initialize_hook) \t| Hooked EnumServicesStatusW.\n");
+
+	if (MH_CreateHook(
+		&GetAdaptersAddresses, &hook_GetAdaptersAddresses,
+		reinterpret_cast<LPVOID*>(&orig_GetAdaptersAddresses)
+	) != MH_OK) {
+		print("[*] (create_hook) \t| Failed to hook GetAdaptersAddresses.\n");
+		exit(1);
+	}
+	if (MH_EnableHook(&GetAdaptersAddresses) != MH_OK) {
+		print("[*](create_hook) \t| Failed to enable GetAdaptersAddresses.\n");
+		exit(1);
+	}
+	print("[*] (initialize_hook) \t| Hooked GetAdaptersAddresses.\n");
 	return;
 }
 

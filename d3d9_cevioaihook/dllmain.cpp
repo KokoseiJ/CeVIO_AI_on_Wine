@@ -1,6 +1,5 @@
 // dllmain.cpp : Defines the entry point for the DLL application.
 
-#include <Windows.h>
 #include "ex.h"
 
 #pragma comment(linker, "/export:ImmActivateLayout=\"C:\\windows\\system32\\imm32.ImmActivateLayout\"")
