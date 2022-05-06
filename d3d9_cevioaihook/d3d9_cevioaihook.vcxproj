@@ -163,11 +163,15 @@
     <None Include="cpp.hint" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="base64.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="ex.cpp" />
+    <ClCompile Include="llist.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="base64.h" />
     <ClInclude Include="ex.h" />
+    <ClInclude Include="llist.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\minhook\build\VC16\libMinHook.vcxproj">

@@ -24,9 +24,21 @@
     <ClCompile Include="ex.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="llist.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="base64.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ex.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="llist.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="base64.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
