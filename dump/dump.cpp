@@ -7,6 +7,7 @@
 #include <WinSock2.h>
 #include <Windows.h>
 #include <iphlpapi.h>
+#include <ws2def.h>
 #include "base64.h"
 
 
@@ -19,7 +20,6 @@ unsigned long dump_adapters(void* buffer, unsigned long* bufsize) {
 		bufsize
 	);
 }
-
 
 void write_dump(FILE* pFile, const char* name, void* buffer, size_t bufsize) {
     char* b64out;
@@ -50,7 +50,10 @@ void write_dump(FILE* pFile, const char* name, void* buffer, size_t bufsize) {
 int main() {
     unsigned long bufsize;
     void* buffer;
+    PIP_ADAPTER_ADDRESSES addrPtr;
     FILE* pFile;
+    char stringBuf[256];
+    uint8_t i = 0;
 
     fopen_s(&pFile, "dump.cfg", "w");
     if (pFile == NULL) {
@@ -66,7 +69,28 @@ int main() {
     }
     dump_adapters(buffer, &bufsize);
 
-    write_dump(pFile, "GetAdaptersAddresses", buffer, bufsize);
+    addrPtr = (PIP_ADAPTER_ADDRESSES)buffer;
+    while (addrPtr != NULL) {
+        sprintf_s(stringBuf, 256 * sizeof(char), "adapter%u", i);
+        write_dump(pFile, stringBuf, addrPtr, addrPtr->Length);
+        sprintf_s(stringBuf, 256 * sizeof(char), "adapter%uname", i);
+        write_dump(pFile, stringBuf, addrPtr->AdapterName, (strlen(addrPtr->AdapterName) + 1) * sizeof(char));
+        sprintf_s(stringBuf, 256 * sizeof(char), "adapter%udesc", i);
+        write_dump(pFile, stringBuf, addrPtr->Description, (wcslen(addrPtr->Description) + 1) * sizeof(wchar_t));
+        if (addrPtr->Dhcpv4Server.iSockaddrLength != 0) {
+            sprintf_s(stringBuf, 256 * sizeof(char), "adapter%uipv4", i);
+            write_dump(pFile, stringBuf, addrPtr->Dhcpv4Server.lpSockaddr, addrPtr->Dhcpv4Server.iSockaddrLength);
+        }
+        if (addrPtr->Dhcpv6Server.iSockaddrLength != 0) {
+            sprintf_s(stringBuf, 256 * sizeof(char), "adapter%uipv6", i);
+            write_dump(pFile, stringBuf, addrPtr->Dhcpv6Server.lpSockaddr, addrPtr->Dhcpv6Server.iSockaddrLength);
+        }
+        printf("[*] %s %d %d\n", addrPtr->AdapterName, addrPtr->Dhcpv4Server.iSockaddrLength, addrPtr->Dhcpv6Server.iSockaddrLength);
+        i++;
+        addrPtr = addrPtr->Next;
+    }
+
+    write_dump(pFile, "adapterlen", &i, sizeof(uint8_t));
 
     fclose(pFile);
 

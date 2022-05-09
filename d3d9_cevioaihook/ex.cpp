@@ -6,131 +6,19 @@ Linkedlist *llist;
 
 BOOL(*orig_EnumServicesStatusW)(SC_HANDLE, DWORD, DWORD, LPENUM_SERVICE_STATUSW, DWORD, LPDWORD, LPDWORD, LPDWORD) = NULL;
 ULONG(*orig_GetAdaptersAddresses)(ULONG, ULONG, PVOID, PIP_ADAPTER_ADDRESSES, PULONG) = NULL;
+DWORD(*orig_GetPerAdapterInfo)(ULONG, PIP_PER_ADAPTER_INFO, PULONG) = NULL;
 
 
-struct address_entry_copy_params
-{
-	IP_ADAPTER_ADDRESSES* src, * dst;
-	char* ptr;
-	void* next;
-	ULONG cur_offset;
-};
-
-static void address_lists_iterate(IP_ADAPTER_ADDRESSES* aa, void (*fn)(void* entry, ULONG offset, void* ctxt), void* ctxt)
-{
-	IP_ADAPTER_UNICAST_ADDRESS* uni;
-	IP_ADAPTER_DNS_SERVER_ADDRESS* dns;
-	IP_ADAPTER_GATEWAY_ADDRESS* gw;
-	IP_ADAPTER_PREFIX* prefix;
-	void* next;
-
-	for (uni = aa->FirstUnicastAddress; uni; uni = (PIP_ADAPTER_UNICAST_ADDRESS)next)
-	{
-		next = uni->Next;
-		fn(uni, FIELD_OFFSET(IP_ADAPTER_ADDRESSES, FirstUnicastAddress), ctxt);
-	}
-
-	for (dns = aa->FirstDnsServerAddress; dns; dns = (PIP_ADAPTER_DNS_SERVER_ADDRESS)next)
-	{
-		next = dns->Next;
-		fn(dns, FIELD_OFFSET(IP_ADAPTER_ADDRESSES, FirstDnsServerAddress), ctxt);
-	}
-
-	for (gw = aa->FirstGatewayAddress; gw; gw = (PIP_ADAPTER_GATEWAY_ADDRESS)next)
-	{
-		next = gw->Next;
-		fn(gw, FIELD_OFFSET(IP_ADAPTER_ADDRESSES, FirstGatewayAddress), ctxt);
-	}
-
-	for (prefix = aa->FirstPrefix; prefix; prefix = (PIP_ADAPTER_PREFIX)next)
-	{
-		next = prefix->Next;
-		fn(prefix, FIELD_OFFSET(IP_ADAPTER_ADDRESSES, FirstPrefix), ctxt);
-	}
-}
-
-static void address_entry_copy(void* ptr, ULONG offset, void* ctxt)
-{
-	struct address_entry_copy_params* params = (struct address_entry_copy_params*)ctxt;
-	IP_ADAPTER_DNS_SERVER_ADDRESS* src_addr = (PIP_ADAPTER_DNS_SERVER_ADDRESS)ptr; /* all list types are super-sets of this type */
-	IP_ADAPTER_DNS_SERVER_ADDRESS* dst_addr = (IP_ADAPTER_DNS_SERVER_ADDRESS*)params->ptr;
-	ULONG align = sizeof(ULONGLONG) - 1;
-
-	memcpy(dst_addr, src_addr, src_addr->Length);
-	params->ptr += src_addr->Length;
-	dst_addr->Address.lpSockaddr = (SOCKADDR*)params->ptr;
-	memcpy(dst_addr->Address.lpSockaddr, src_addr->Address.lpSockaddr, src_addr->Address.iSockaddrLength);
-	params->ptr += (src_addr->Address.iSockaddrLength + align) & ~align;
-
-	if (params->cur_offset != offset) /* new list */
-	{
-		params->next = (BYTE*)params->dst + offset;
-		params->cur_offset = offset;
-	}
-	*(IP_ADAPTER_DNS_SERVER_ADDRESS**)params->next = dst_addr;
-	params->next = &dst_addr->Next;
-}
-
-static void adapters_addresses_copy(IP_ADAPTER_ADDRESSES* dst, IP_ADAPTER_ADDRESSES* src)
-{
-	char* ptr;
-	DWORD len;
-	UINT_PTR align = sizeof(ULONGLONG) - 1;
-	struct address_entry_copy_params params;
-
-	while (src)
-	{
-		ptr = (char*)(dst + 1);
-		*dst = *src;
-		dst->AdapterName = ptr;
-		len = strlen(src->AdapterName) + 1;
-		memcpy(dst->AdapterName, src->AdapterName, len);
-		ptr += (len + 1) & ~1;
-		dst->Description = (WCHAR*)ptr;
-		len = (wcslen(src->Description) + 1) * sizeof(WCHAR);
-		memcpy(dst->Description, src->Description, len);
-		ptr += len;
-		dst->DnsSuffix = (WCHAR*)ptr;
-		len = (wcslen(src->DnsSuffix) + 1) * sizeof(WCHAR);
-		memcpy(dst->DnsSuffix, src->DnsSuffix, len);
-		ptr += len;
-		if (src->FriendlyName)
-		{
-			dst->FriendlyName = (WCHAR*)ptr;
-			len = (wcslen(src->FriendlyName) + 1) * sizeof(WCHAR);
-			memcpy(dst->FriendlyName, src->FriendlyName, len);
-			ptr += len;
-		}
-		ptr = (char*)(((UINT_PTR)ptr + align) & ~align);
-
-		params.src = src;
-		params.dst = dst;
-		params.ptr = ptr;
-		params.next = NULL;
-		params.cur_offset = ~0u;
-		address_lists_iterate(src, address_entry_copy, &params);
-		ptr = params.ptr;
-
-		if (src->Next)
-		{
-			dst->Next = (IP_ADAPTER_ADDRESSES*)ptr;
-			dst = dst->Next;
-		}
-		src = src->Next;
-	}
-}
-
-
-DWORD print(const char* printstr) {
-	DWORD printstr_length;
+DWORD print(const char* stringBuf) {
+	DWORD stringBufLen;
 	DWORD written_chars;
 
-	printstr_length = static_cast<DWORD>(strlen(printstr));
+	stringBufLen = static_cast<DWORD>(strlen(stringBuf));
 
 	WriteConsole(
 		consoneHandle,
-		printstr,
-		printstr_length,
+		stringBuf,
+		stringBufLen,
 		&written_chars,
 		NULL
 	);
@@ -139,22 +27,18 @@ DWORD print(const char* printstr) {
 }
 
 HANDLE setup_console() {
-	char* printarr;
-	printarr = (char*)calloc(128, sizeof(char));
-	if (printarr == NULL) return NULL;
+	char stringBuf[256];
 
 	AllocConsole();
 	SetConsoleTitle("CeVIO AI INJECTION DEBUG CONSOLE");
 	consoneHandle = GetStdHandle(STD_OUTPUT_HANDLE);
 
 	sprintf_s(
-		printarr,
+		stringBuf,
 		128 * sizeof(char),
 		"[*] (setup_console) \t| Console Attached. StdHandle: %d\n", (int)consoneHandle
 	);
-	print(printarr);
-
-	free(printarr);
+	print(stringBuf);
 
 	return stdout;
 }
@@ -166,7 +50,7 @@ char* splitstr(char** str, char delim) {
 	splitptr = strchr(*str, delim);
 	if (splitptr == NULL) {
 		*str = NULL;
-		print("[*] (splitstr) \t\t| This should've never happened. what have you done??\n");
+		print("[*] (splitstr) \t| This should've never happened. what have you done??\n");
 	}
 	else {
 		*splitptr = '\0';
@@ -187,6 +71,52 @@ long int flen(FILE* pFile) {
 }
 
 
+PIP_ADAPTER_ADDRESSES format_adapters() {
+	uint8_t len, i;
+	char stringBuf[256];
+	PIP_ADAPTER_ADDRESSES rtnval;
+	PIP_ADAPTER_ADDRESSES* ptr;
+
+	len = *((uint8_t*)(llist_get(llist, "adapterlen")->value));
+
+	sprintf_s(stringBuf, 256 * sizeof(char), "[*] (format_adapters) \t| Length: %u\n", len);
+	print(stringBuf);
+
+	ptr = &rtnval;
+
+	for (i = 0; i < len; i++) {
+		sprintf_s(stringBuf, 256 * sizeof(char), "adapter%u", i);
+		*ptr = (PIP_ADAPTER_ADDRESSES)(llist_get(llist, stringBuf)->value);
+		sprintf_s(stringBuf, 256 * sizeof(char), "adapter%uname", i);
+		(*ptr)->AdapterName = (char*)(llist_get(llist, stringBuf)->value);
+		sprintf_s(stringBuf, 256 * sizeof(char), "adapter%udesc", i);
+		(*ptr)->Description = (wchar_t*)(llist_get(llist, stringBuf)->value);
+
+		sprintf_s(stringBuf, 256 * sizeof(char), "adapter%uipv4", i);
+		if (llist_get(llist, stringBuf) != NULL)
+			(*ptr)->Dhcpv4Server.lpSockaddr = (LPSOCKADDR)(llist_get(llist, stringBuf)->value);
+
+		sprintf_s(stringBuf, 256 * sizeof(char), "adapter%uipv6", i);
+		if (llist_get(llist, stringBuf) != NULL)
+			(*ptr)->Dhcpv6Server.lpSockaddr = (LPSOCKADDR)(llist_get(llist, stringBuf)->value);
+
+		(*ptr)->FirstUnicastAddress = NULL;
+		(*ptr)->FirstAnycastAddress = NULL;
+		(*ptr)->FirstMulticastAddress = NULL;
+		(*ptr)->FirstDnsServerAddress = NULL;
+		(*ptr)->DnsSuffix = NULL;
+		(*ptr)->FriendlyName = NULL;
+		(*ptr)->FirstPrefix = NULL;
+		(*ptr)->FirstWinsServerAddress = NULL;
+		(*ptr)->FirstGatewayAddress = NULL;
+
+		ptr = &((*ptr)->Next);
+	}
+
+	return rtnval;
+}
+
+
 BOOL hook_EnumServicesStatusW(
 	SC_HANDLE hSCManager,              // IN
 	DWORD dwServiceType,               // IN
@@ -198,12 +128,9 @@ BOOL hook_EnumServicesStatusW(
 	LPDWORD lpResumeHandle             // IN/OUT/OPT
 ) {
 	unsigned int i;
-	char* printarr;
+	char stringBuf[256];
 	_ENUM_SERVICE_STATUSW service;
 	SERVICE_STATUS status;
-
-	printarr = (char*)calloc(256, sizeof(char));
-	if (printarr == NULL) return false;
 
 	/*
 	rtnval = orig_EnumServicesStatusW(
@@ -219,12 +146,12 @@ BOOL hook_EnumServicesStatusW(
 	*/
 
 	sprintf_s(
-		printarr,
+		stringBuf,
 		256 * sizeof(char),
 		"[*] (hook_EnumServicesStatusW) \t| Called. Type: %ld, State: %ld, BufSize: %ld\n",
 		dwServiceType, dwServiceState, cbBufSize
 	);
-	print(printarr);
+	print(stringBuf);
 
 	*pcbBytesNeeded = sizeof(ENUM_SERVICE_STATUSW);
 	*lpServicesReturned = 1;
@@ -249,17 +176,15 @@ BOOL hook_EnumServicesStatusW(
 			service = lpServices[i];
 			status = service.ServiceStatus;
 			sprintf_s(
-				printarr,
+				stringBuf,
 				256 * sizeof(char),
 				"[*] (hook_EnumServicesStatusW) \t| %ls, Display: %ls, Service | Type: %lx, State: %lx, Accepted: %lx, Exitcode: %lx, SpecExit: %lx, Check: %lx, Waithint: %lx\n",
 				service.lpServiceName, service.lpDisplayName, status.dwServiceType, status.dwCurrentState, status.dwControlsAccepted, status.dwWin32ExitCode, status.dwServiceSpecificExitCode, status.dwCheckPoint, status.dwWaitHint
 			);
-			print(printarr);
+			print(stringBuf);
 		}
 
 	}
-
-	free(printarr);
 
 	return true;
 }
@@ -272,30 +197,38 @@ ULONG hook_GetAdaptersAddresses(
 	PULONG SizePointer                      // IN/OUT
 ) {
 	unsigned long origBufSize = *SizePointer, rtnval = 0;
-	char* printarr;
+	char stringBuf[256];
+	PIP_ADAPTER_ADDRESSES buffer;
 	Linkedlist* entry;
 
-	printarr = (char*)calloc(256, sizeof(char));
-	if (printarr == NULL) return 0;
-
 	sprintf_s(
-		printarr,
+		stringBuf,
 		256 * sizeof(char),
 		"[*] (hook_GetAdaptersAddresses) \t| Called. Family: %lx, Flag: %lx, BufSize: %ld\n",
 		Family, Flags, origBufSize
 	);
-	print(printarr);
+	print(stringBuf);
 
 	if (Flags == (GAA_FLAG_INCLUDE_WINS_INFO | GAA_FLAG_INCLUDE_GATEWAYS)) {
-		entry = llist_get(llist, "GetAdaptersAddresses");
+		entry = llist_get(llist, "adapter0");
 		if (entry != NULL) {
 			print("[*] (hook_GetAdaptersAddresses) \t| Dump found, overriding call value\n");
-			if (origBufSize >= entry->size) {
-				adapters_addresses_copy(AdapterAddresses, (PIP_ADAPTER_ADDRESSES)entry->value);
+
+			buffer = format_adapters();
+
+			if (origBufSize >= buffer->Length) {
+				memcpy(AdapterAddresses, buffer, buffer->Length);
 				rtnval = ERROR_SUCCESS;
 			}
 			else {
-				*SizePointer = entry->size;
+				*SizePointer = buffer->Length;
+				sprintf_s(
+					stringBuf,
+					256 * sizeof(char),
+					"[*] (hook_GetAdaptersAddresses) \t| sizeptr: %lu, size: %lu\n",
+					*SizePointer, buffer->Length
+				);
+				print(stringBuf);
 				rtnval = ERROR_BUFFER_OVERFLOW;
 			}
 		}
@@ -303,8 +236,38 @@ ULONG hook_GetAdaptersAddresses(
 	else
 		rtnval = orig_GetAdaptersAddresses(Family, Flags, Reserved, AdapterAddresses, SizePointer);
 
-	free(printarr);
+	print("[*] (hook_GetAdaptersAddresses) \t| Reached the end\n");
 	return rtnval;
+}
+
+DWORD hook_GetPerAdapterInfo(
+	ULONG IfIndex,
+	PIP_PER_ADAPTER_INFO pPerAdapterInfo,
+	PULONG pOutBufLen
+) {
+	char stringBuf[256];
+
+	sprintf_s(
+		stringBuf,
+		256 * sizeof(char),
+		"[*] (hook_GetPerAdapterInfo) \t| index: %lu, size: %lu\n",
+		IfIndex, *pOutBufLen
+	);
+	print(stringBuf);
+
+	if (*pOutBufLen < sizeof(IP_PER_ADAPTER_INFO)) {
+		*pOutBufLen = sizeof(IP_PER_ADAPTER_INFO);
+		return ERROR_BUFFER_OVERFLOW;
+	}
+
+	*pPerAdapterInfo = {
+		1,
+		1,
+		NULL,
+		NULL
+	};
+
+	return ERROR_SUCCESS;
 }
 
 
@@ -345,34 +308,48 @@ void create_hook() {
 	}
 	print("[*] (create_hook) \t| Hooked GetAdaptersAddresses.\n");
 
+	if (MH_CreateHook(
+		&GetPerAdapterInfo, &hook_GetPerAdapterInfo,
+		reinterpret_cast<LPVOID*>(&orig_GetPerAdapterInfo)
+	) != MH_OK) {
+		print("[*] (create_hook) \t| Failed to hook GetPerAdapterInfo.\n");
+		exit(1);
+	}
+	if (MH_EnableHook(&GetPerAdapterInfo) != MH_OK) {
+		print("[*] (create_hook) \t| Failed to enable GetPerAdapterInfo.\n");
+		exit(1);
+	}
+	print("[*] (create_hook) \t| Hooked GetPerAdapterInfo.\n");
+
 	return;
 }
 
 Linkedlist* load_ini(const char* filename) {
 	FILE* pFile;
-	char* printarr, * str, * strptr, * name, * b64in;
+	char stringBuf[256], * str, * strptr, * name, * b64in;
 	void* b64out;
 	long int size;
 	size_t b64inlen, b64outlen;
 
-	printarr = (char*)calloc(256, sizeof(char));
-	if (printarr == NULL) return 0;
-
 	fopen_s(&pFile, filename, "r");
 	if (pFile == NULL) {
 		sprintf_s(
-			printarr,
+			stringBuf,
 			256 * sizeof(char),
 			"[*] (load_ini) \t| Failed to load [%s], all the values will default to zero.\n",
 			filename
 		);
-		print(printarr);
+		print(stringBuf);
 		return NULL;
 	}
-	print("[*] (load_ini) \t\t| Loaded File.\n");
+	print("[*] (load_ini) \t| Loaded File.\n");
 
 	size = flen(pFile);
 	str = strptr = (char*)calloc(size + sizeof(char), 1);
+	if (str == NULL) {
+		print("[*] (load_ini) \t| Failed to allocate string buffer.\n");
+		return NULL;
+	}
 	fread(str, size, sizeof(char), pFile);
 	fclose(pFile);
 
@@ -389,17 +366,15 @@ Linkedlist* load_ini(const char* filename) {
 		llist = llist_put(llist, name, b64out, b64outlen);
 
 		sprintf_s(
-			printarr,
+			stringBuf,
 			256 * sizeof(char),
-			"[*] (load_ini) \t\t| Loaded Key: %s, size: %zu.\n",
+			"[*] (load_ini) \t| Loaded Key: %s, size: %zu.\n",
 			name, b64outlen
 		);
-		print(printarr);
+		print(stringBuf);
 	}
 
-	print("[*] (load_ini) \t\t| List successfully loaded!\n");
-
-	free(printarr);
+	print("[*] (load_ini) \t| List successfully loaded!\n");
 
 	return NULL;
 }
