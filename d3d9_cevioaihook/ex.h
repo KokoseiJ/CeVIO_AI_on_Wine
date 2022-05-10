@@ -9,6 +9,7 @@
 #include <Windows.h>
 #include <iphlpapi.h>
 #include <synchapi.h>
+#include <WbemCli.h>
 #include "MinHook.h"
 #include "llist.h"
 #include "base64.h"

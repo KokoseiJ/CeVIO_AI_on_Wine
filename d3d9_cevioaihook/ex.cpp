@@ -7,6 +7,7 @@ Linkedlist *llist;
 BOOL(*orig_EnumServicesStatusW)(SC_HANDLE, DWORD, DWORD, LPENUM_SERVICE_STATUSW, DWORD, LPDWORD, LPDWORD, LPDWORD) = NULL;
 ULONG(*orig_GetAdaptersAddresses)(ULONG, ULONG, PVOID, PIP_ADAPTER_ADDRESSES, PULONG) = NULL;
 DWORD(*orig_GetPerAdapterInfo)(ULONG, PIP_PER_ADAPTER_INFO, PULONG) = NULL;
+HRESULT(*orig_ExecQueryWmi)(BSTR, BSTR, long, IWbemContext*, IEnumWbemClassObject**, DWORD, DWORD, IWbemServices*, BSTR, BSTR, BSTR);
 
 
 DWORD print(const char* stringBuf) {
@@ -270,6 +271,23 @@ DWORD hook_GetPerAdapterInfo(
 	return ERROR_SUCCESS;
 }
 
+HRESULT hook_ExecQueryWmi(
+	BSTR strQueryLanguage,
+	BSTR strQuery,
+	long lFlags,
+	IWbemContext* pCtx,
+	IEnumWbemClassObject** ppEnum,
+	DWORD authLevel,
+	DWORD impLevel,
+	IWbemServices* pCurrentNamespace,
+	BSTR strUser,
+	BSTR strPassword,
+	BSTR strAuthority
+) {
+	print("[*] (hook_ExecQueryWmi) \t| Query called.");
+	return 0x80041000;
+}
+
 
 void initialize_hook() {
 	if (MH_Initialize() != MH_OK) {
@@ -282,6 +300,21 @@ void initialize_hook() {
 }
 
 void create_hook() {
+	HMODULE wminetHandle;
+	FARPROC ptr_ExecQueryWmi;
+
+	wminetHandle = LoadLibraryA("C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\WMINet_Utils.dll");
+	if (wminetHandle == NULL) {
+		print("[*] (create_hook) \t| Failed to load WMINet_Utils.dll.");
+		exit(1);
+	}
+	ptr_ExecQueryWmi = GetProcAddress(wminetHandle, "ExecQueryWmi");
+	if (ptr_ExecQueryWmi == NULL) {
+		print("[*] (create_hook) \t| Failed to load ExecQueryWmi.");
+		exit(1);
+	}
+	print("[*] (create_hook) \t| Loaded ExecQueryWmi address.");
+
 	if (MH_CreateHook(
 		&EnumServicesStatusW, &hook_EnumServicesStatusW,
 		reinterpret_cast<LPVOID*>(&orig_EnumServicesStatusW)
@@ -320,6 +353,19 @@ void create_hook() {
 		exit(1);
 	}
 	print("[*] (create_hook) \t| Hooked GetPerAdapterInfo.\n");
+
+	if (MH_CreateHook(
+		ptr_ExecQueryWmi, &hook_ExecQueryWmi,
+		reinterpret_cast<LPVOID*>(&orig_ExecQueryWmi)
+	) != MH_OK) {
+		print("[*] (create_hook) \t| Failed to hook ExecQueryWmi.\n");
+		exit(1);
+	}
+	if (MH_EnableHook(ptr_ExecQueryWmi) != MH_OK) {
+		print("[*] (create_hook) \t| Failed to enable ExecQueryWmi.\n");
+		exit(1);
+	}
+	print("[*] (create_hook) \t| Hooked ExecQueryWmi.\n");
 
 	return;
 }
