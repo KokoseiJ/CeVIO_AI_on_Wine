@@ -10,6 +10,7 @@ DWORD(*orig_GetPerAdapterInfo)(ULONG, PIP_PER_ADAPTER_INFO, PULONG) = NULL;
 HRESULT(*orig_ExecQueryWmi)(BSTR, BSTR, long, IWbemContext*, IEnumWbemClassObject**, DWORD, DWORD, IWbemServices*, BSTR, BSTR, BSTR);
 
 
+// =============== Debug console ===============
 DWORD print(const char* stringBuf) {
 	DWORD stringBufLen;
 	DWORD written_chars;
@@ -45,6 +46,7 @@ HANDLE setup_console() {
 }
 
 
+// =============== Utility Function Codes ===============
 char* splitstr(char** str, char delim) {
 	char* rtnstr, * splitptr;
 	rtnstr = *str;
@@ -72,6 +74,7 @@ long int flen(FILE* pFile) {
 }
 
 
+// =============== Hook-specific subcomponents ===============
 PIP_ADAPTER_ADDRESSES format_adapters() {
 	uint8_t len, i;
 	char stringBuf[256];
@@ -118,6 +121,78 @@ PIP_ADAPTER_ADDRESSES format_adapters() {
 }
 
 
+// =============== WMI Class implementations ===============
+class HookEnumWbemClassObject : public IEnumWbemClassObject {
+public:
+	HookEnumWbemClassObject(IWbemClassObject* rtn_obj) {
+		wbemClassObject = rtn_obj;
+	}
+
+	ULONG AddRef() {
+		char stringBuf[256];
+		sprintf_s(
+			stringBuf,
+			256 * sizeof(char),
+			"[*] (HookEnumWbemClassObject::AddRef) \t| Called. refcount: %lu\n",
+			++refcount
+		);
+		print(stringBuf);
+
+		return refcount;
+	}
+	HRESULT QueryInterface(REFIID riid, void** ppvObject) {
+		print("[*] (HookEnumWbemClassObject::QueryInterface) \t| Called.\n");
+		if (ppvObject == NULL) return E_POINTER;
+		// if (riid == IID_IUnknown || riid == IID_IEnumWbemClassObject) { <= This shit link errors!
+		if (true) {
+			*ppvObject = this;
+			AddRef();
+			return S_OK;
+		}
+		return E_NOINTERFACE;
+	}
+	ULONG Release() {
+		char stringBuf[256];
+		sprintf_s(
+			stringBuf,
+			256 * sizeof(char),
+			"[*] (HookEnumWbemClassObject::Release) \t| Called. refcount: %lu\n",
+			--refcount
+		);
+		print(stringBuf);
+
+		return refcount;
+	}
+
+	HRESULT Clone(IEnumWbemClassObject** ppEnum) {
+		print("[*] (HookEnumWbemClassObject::Clone) \t| Called.\n");
+		*ppEnum = new HookEnumWbemClassObject(this->wbemClassObject);
+		return S_OK;
+	}
+	HRESULT Next(long lTimeout, ULONG uCount, IWbemClassObject** apObjects, ULONG* puReturned) {
+		print("[*] (HookEnumWbemClassObject::Next) \t| Not Implemented method called.\n");
+		return E_NOTIMPL;
+	}
+	HRESULT NextAsync(ULONG uCount, IWbemObjectSink* pSink) {
+		print("[*] (HookEnumWbemClassObject::NextAsync) \t| Not Implemented method called.\n");
+		return E_NOTIMPL;
+	}
+	HRESULT Reset() {
+		print("[*] (HookEnumWbemClassObject::Reset) \t| Not Implemented method called.\n");
+		return E_NOTIMPL;
+	}
+	HRESULT Skip(long lTimeout, ULONG nCount) {
+		print("[*] (HookEnumWbemClassObject::Skip) \t| Not Implemented method called.\n");
+		return E_NOTIMPL;
+	}
+
+protected:
+	ULONG refcount = 0;
+	IWbemClassObject* wbemClassObject;
+};
+
+
+// =============== HOOKS ===============
 BOOL hook_EnumServicesStatusW(
 	SC_HANDLE hSCManager,              // IN
 	DWORD dwServiceType,               // IN
@@ -284,11 +359,24 @@ HRESULT hook_ExecQueryWmi(
 	BSTR strPassword,
 	BSTR strAuthority
 ) {
-	print("[*] (hook_ExecQueryWmi) \t| Query called.");
-	return 0x80041000;
+	char stringBuf[256];
+
+	sprintf_s(
+		stringBuf,
+		256 * sizeof(char),
+		"[*] (hook_ExecQueryWmi) \t| Query Called: `%S`.\n",
+		strQuery
+	);
+	print(stringBuf);
+
+	*ppEnum = new HookEnumWbemClassObject(NULL);
+
+	//return 0x80041000;
+	return S_OK;
 }
 
 
+// =============== Initialization codes ===============
 void initialize_hook() {
 	if (MH_Initialize() != MH_OK) {
 		print("[*] (initialize_hook) \t| Minhook initialize failed.\n");
@@ -305,15 +393,15 @@ void create_hook() {
 
 	wminetHandle = LoadLibraryA("C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\WMINet_Utils.dll");
 	if (wminetHandle == NULL) {
-		print("[*] (create_hook) \t| Failed to load WMINet_Utils.dll.");
+		print("[*] (create_hook) \t| Failed to load WMINet_Utils.dll.\n");
 		exit(1);
 	}
 	ptr_ExecQueryWmi = GetProcAddress(wminetHandle, "ExecQueryWmi");
 	if (ptr_ExecQueryWmi == NULL) {
-		print("[*] (create_hook) \t| Failed to load ExecQueryWmi.");
+		print("[*] (create_hook) \t| Failed to load ExecQueryWmi.\n");
 		exit(1);
 	}
-	print("[*] (create_hook) \t| Loaded ExecQueryWmi address.");
+	print("[*] (create_hook) \t| Loaded ExecQueryWmi address.\n");
 
 	if (MH_CreateHook(
 		&EnumServicesStatusW, &hook_EnumServicesStatusW,
@@ -399,6 +487,7 @@ Linkedlist* load_ini(const char* filename) {
 	fread(str, size, sizeof(char), pFile);
 	fclose(pFile);
 
+	// TODO: Allocate key names to new strings and unallocate the file string
 	while (strptr != NULL && *strptr != NULL) {
 		name = splitstr(&strptr, '\n');
 		b64in = splitstr(&strptr, '\n');
@@ -428,7 +517,7 @@ Linkedlist* load_ini(const char* filename) {
 
 void ex_start() {
 	setup_console();
-	initialize_hook();
 	load_ini("dump.cfg");
+	initialize_hook();
 	create_hook();
 }
