@@ -10,6 +10,17 @@
 #include <ws2def.h>
 #include "base64.h"
 
+char* trim_space(char* string) {
+    while (*string != NULL) {
+        if (*string == ' ' || *string == '\r' || *string == '\n') {
+            *string = '\0';
+            return string;
+        }
+        string++;
+    }
+    return string;
+}
+
 
 unsigned long dump_adapters(void* buffer, unsigned long* bufsize) {
 	return GetAdaptersAddresses(
@@ -20,6 +31,31 @@ unsigned long dump_adapters(void* buffer, unsigned long* bufsize) {
 		bufsize
 	);
 }
+
+char* dump_hdserial() {
+    char stringBuf[128], *returnBuf;
+    FILE* pPipe;
+
+    pPipe = _popen("wmic logicaldisk get volumeserialnumber", "rt");
+
+    fgets(stringBuf, 128, pPipe);
+    fgets(stringBuf, 128, pPipe);
+
+    trim_space(stringBuf);
+
+    returnBuf = (char*)calloc(strlen(stringBuf) + 1, sizeof(char));
+    if (returnBuf == NULL) {
+        printf("[*] Failed to allocate returnBuf.\n");
+        exit(1);
+    }
+
+    strcpy_s(returnBuf, (strlen(stringBuf) + 1) * sizeof(char), stringBuf);
+
+    printf("%s\n", returnBuf);
+
+    return returnBuf;
+}
+
 
 void write_dump(FILE* pFile, const char* name, void* buffer, size_t bufsize) {
     char* b64out;
@@ -52,7 +88,7 @@ int main() {
     void* buffer;
     PIP_ADAPTER_ADDRESSES addrPtr;
     FILE* pFile;
-    char stringBuf[256];
+    char stringBuf[256], * strPtr;
     uint8_t i = 0;
 
     fopen_s(&pFile, "dump.cfg", "w");
@@ -91,6 +127,9 @@ int main() {
     }
 
     write_dump(pFile, "adapterlen", &i, sizeof(uint8_t));
+
+    strPtr = dump_hdserial();
+    write_dump(pFile, "hdPrimarySerial", strPtr, (strlen(strPtr) + 1) * sizeof(char));
 
     fclose(pFile);
 
