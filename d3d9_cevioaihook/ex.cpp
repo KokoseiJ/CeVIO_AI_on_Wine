@@ -122,10 +122,158 @@ PIP_ADAPTER_ADDRESSES format_adapters() {
 
 
 // =============== WMI Class implementations ===============
+class HookWbemClassObject : public IWbemClassObject {
+public:
+	HookWbemClassObject(Linkedlist* llist) {
+		print("[*] wbemclass init\n");
+		this->llist = llist;
+	}
+
+	ULONG AddRef() {
+		char stringBuf[256];
+		sprintf_s(
+			stringBuf,
+			256 * sizeof(char),
+			"[*] (HookWbemClassObject::AddRef) \t| Called. refcount: %lu\n",
+			++refcount
+		);
+		print(stringBuf);
+
+		return refcount;
+	}
+	HRESULT QueryInterface(REFIID riid, void** ppvObject) {
+		print("[*] (HookWbemClassObject::QueryInterface) \t| Called.\n");
+		if (ppvObject == NULL) return E_POINTER;
+		if (riid == IID_IUnknown || riid == IID_IWbemClassObject) {
+			*ppvObject = this;
+			AddRef();
+			return S_OK;
+		}
+		return E_NOINTERFACE;
+	}
+	ULONG Release() {
+		char stringBuf[256];
+		sprintf_s(
+			stringBuf,
+			256 * sizeof(char),
+			"[*] (HookWbemClassObject::Release) \t| Called. refcount: %lu\n",
+			--refcount
+		);
+		print(stringBuf);
+
+		return refcount;
+	}
+
+	HRESULT BeginEnumeration(long lEnumFlags) {
+		print("[*] (HookWbemClassObject::BeginEnumeration) \t| Not implemented method called.\n");
+		return E_NOTIMPL;
+	}
+	HRESULT BeginMethodEnumeration(long lEnumFlags) {
+		print("[*] (HookWbemClassObject::BeginMethodEnumeration) \t| Not implemented method called.\n");
+		return E_NOTIMPL;
+	}
+	HRESULT Clone(IWbemClassObject** ppCopy) {
+		print("[*] (HookWbemClassObject::Clone) \t| Not implemented method called.\n");
+		return E_NOTIMPL;
+	}
+	HRESULT CompareTo(long lFlags, IWbemClassObject* pCompareTo) {
+		print("[*] (HookWbemClassObject::CompareTo) \t| Not implemented method called.\n");
+		return E_NOTIMPL;
+	}
+	HRESULT Delete(LPCWSTR wszName) {
+		print("[*] (HookWbemClassObject::Delete) \t| Not implemented method called.\n");
+		return E_NOTIMPL;
+	}
+	HRESULT DeleteMethod(LPCWSTR wszName) {
+		print("[*] (HookWbemClassObject::DeleteMethod) \t| Not implemented method called.\n");
+		return E_NOTIMPL;
+	}
+	HRESULT EndEnumeration(void) {
+		print("[*] (HookWbemClassObject::ndEnumeration) \t| Not implemented method called.\n");
+		return E_NOTIMPL;
+	}
+	HRESULT EndMethodEnumeration(void) {
+		print("[*] (HookWbemClassObject::ndMethodEnumeration) \t| Not implemented method called.\n");
+		return E_NOTIMPL;
+	}
+	HRESULT Get(LPCWSTR wszName, long lFlags, VARIANT* pVal, CIMTYPE* pType, long* plFlavor) {
+		print("[*] (HookWbemClassObject::Get) \t| Not implemented method called.\n");
+		return E_NOTIMPL;
+	}
+	HRESULT GetMethod(LPCWSTR wszName, long lFlags, IWbemClassObject** ppInSignature, IWbemClassObject** ppOutSignature) {
+		print("[*] (HookWbemClassObject::GetMethod) \t| Not implemented method called.\n");
+		return E_NOTIMPL;
+	}
+	HRESULT GetMethodOrigin(LPCWSTR wszMethodName, BSTR* pstrClassName) {
+		print("[*] (HookWbemClassObject::GetMethodOrigin) \t| Not implemented method called.\n");
+		return E_NOTIMPL;
+	}
+	HRESULT GetMethodQualifierSet(LPCWSTR wszMethod, IWbemQualifierSet** ppQualSet) {
+		print("[*] (HookWbemClassObject::GetMethodQualifierSet) \t| Not implemented method called.\n");
+		return E_NOTIMPL;
+	}
+	HRESULT GetNames(LPCWSTR wszQualifierName, long lFlags, VARIANT* pQualifierVal, SAFEARRAY** pNames) {
+		print("[*] (HookWbemClassObject::GetNames) \t| Not implemented method called.\n");
+		return E_NOTIMPL;
+	}
+	HRESULT GetObjectText(long lFlags, BSTR* pstrObjectText) {
+		print("[*] (HookWbemClassObject::GetObjectText) \t| Not implemented method called.\n");
+		return E_NOTIMPL;
+	}
+	HRESULT GetPropertyOrigin(LPCWSTR wszName, BSTR* pstrClassName) {
+		print("[*] (HookWbemClassObject::GetPropertyOrigin) \t| Not implemented method called.\n");
+		return E_NOTIMPL;
+	}
+	HRESULT GetPropertyQualifierSet(LPCWSTR wszProperty, IWbemQualifierSet** ppQualSet) {
+		print("[*] (HookWbemClassObject::GetPropertyQualifierSet) \t| Not implemented method called.\n");
+		return E_NOTIMPL;
+	}
+	HRESULT GetQualifierSet(IWbemQualifierSet** ppQualSet) {
+		print("[*] (HookWbemClassObject::GetQualifierSet) \t| Not implemented method called.\n");
+		return E_NOTIMPL;
+	}
+	HRESULT InheritsFrom(LPCWSTR strAncestor) {
+		print("[*] (HookWbemClassObject::InheritsFrom) \t| Not implemented method called.\n");
+		return E_NOTIMPL;
+	}
+	HRESULT Next(long lFlags, BSTR* strName, VARIANT* pVal, CIMTYPE* pType, long* plFlavor) {
+		print("[*] (HookWbemClassObject::Next) \t| Not implemented method called.\n");
+		return E_NOTIMPL;
+	}
+	HRESULT NextMethod(long lFlags, BSTR* pstrName, IWbemClassObject** ppInSignature, IWbemClassObject** ppOutSignature) {
+		print("[*] (HookWbemClassObject::NextMethod) \t| Not implemented method called.\n");
+		return E_NOTIMPL;
+	}
+	HRESULT Put(LPCWSTR wszName, long lFlags, VARIANT* pVal, CIMTYPE Type) {
+		print("[*] (HookWbemClassObject::Put) \t| Not implemented method called.\n");
+		return E_NOTIMPL;
+	}
+	HRESULT PutMethod(LPCWSTR wszName, long lFlags, IWbemClassObject* pInSignature, IWbemClassObject* pOutSignature) {
+		print("[*] (HookWbemClassObject::PutMethod) \t| Not implemented method called.\n");
+		return E_NOTIMPL;
+	}
+	HRESULT SpawnDerivedClass(long lFlags, IWbemClassObject** ppNewClass) {
+		print("[*] (HookWbemClassObject::pawnDerivedClass) \t| Not implemented method called.\n");
+		return E_NOTIMPL;
+	}
+	HRESULT SpawnInstance(long lFlags, IWbemClassObject** ppNewInstance) {
+		print("[*] (HookWbemClassObject::pawnInstance) \t| Not implemented method called.\n");
+		return E_NOTIMPL;
+	}
+
+protected:
+	Linkedlist* llist;
+	ULONG refcount = 1;
+};
+
 class HookEnumWbemClassObject : public IEnumWbemClassObject {
 public:
-	HookEnumWbemClassObject(IWbemClassObject* rtn_obj) {
-		wbemClassObject = rtn_obj;
+	HookEnumWbemClassObject(Linkedlist* llist) {
+		this->llist = llist;
+	}
+	HookEnumWbemClassObject(Linkedlist* llist, ULONG idx) {
+		this->llist = llist;
+		this->index = idx;
 	}
 
 	ULONG AddRef() {
@@ -143,12 +291,14 @@ public:
 	HRESULT QueryInterface(REFIID riid, void** ppvObject) {
 		print("[*] (HookEnumWbemClassObject::QueryInterface) \t| Called.\n");
 		if (ppvObject == NULL) return E_POINTER;
-		// if (riid == IID_IUnknown || riid == IID_IEnumWbemClassObject) { <= This shit link errors!
-		if (true) {
+		if (true || riid == IID_IUnknown || riid == IID_IEnumWbemClassObject) {
+			print("[*] (HookEnumWbemClassObject::QueryInterface) \t| RIID match found.\n");
 			*ppvObject = this;
 			AddRef();
 			return S_OK;
 		}
+
+		print("[*] (HookEnumWbemClassObject::QueryInterface) \t| RIID match not found.\n");
 		return E_NOINTERFACE;
 	}
 	ULONG Release() {
@@ -166,12 +316,32 @@ public:
 
 	HRESULT Clone(IEnumWbemClassObject** ppEnum) {
 		print("[*] (HookEnumWbemClassObject::Clone) \t| Called.\n");
-		*ppEnum = new HookEnumWbemClassObject(this->wbemClassObject);
+		*ppEnum = new HookEnumWbemClassObject(llist, index);
 		return S_OK;
 	}
 	HRESULT Next(long lTimeout, ULONG uCount, IWbemClassObject** apObjects, ULONG* puReturned) {
-		print("[*] (HookEnumWbemClassObject::Next) \t| Not Implemented method called.\n");
-		return E_NOTIMPL;
+		char stringBuf[256];
+
+		sprintf_s(
+			stringBuf,
+			256 * sizeof(char),
+			"[*] (HookEnumWbemClassObject::Next) \t| Called. timeout: %ld, count: %lu, apobj: %p, puReturned: %p\n",
+			lTimeout, uCount, apObjects, puReturned
+		);
+		print(stringBuf);
+
+		if (index++ == 0) {
+			print("[*] (HookEnumWbemClassObject::Next) \t| apObjects[0] == wbemClassObject\n");
+			ptr = new HookWbemClassObject(llist);
+			buffer = malloc(sizeof(HookWbemClassObject));
+			memcpy(buffer, ptr, sizeof(HookWbemClassObject));
+			apObjects[0] = (IWbemClassObject *)buffer;
+			*puReturned = 1;
+			if (uCount == 1) return WBEM_S_NO_ERROR;
+		}
+		else *puReturned = 0;
+
+		return WBEM_S_FALSE;
 	}
 	HRESULT NextAsync(ULONG uCount, IWbemObjectSink* pSink) {
 		print("[*] (HookEnumWbemClassObject::NextAsync) \t| Not Implemented method called.\n");
@@ -187,8 +357,11 @@ public:
 	}
 
 protected:
-	ULONG refcount = 0;
-	IWbemClassObject* wbemClassObject;
+	ULONG refcount = 1;
+	ULONG index = 0;
+	Linkedlist* llist = NULL;
+	void* buffer = NULL;
+	IWbemClassObject* ptr = NULL;
 };
 
 
