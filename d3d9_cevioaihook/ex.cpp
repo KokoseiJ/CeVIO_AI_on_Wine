@@ -8,6 +8,7 @@ BOOL(*orig_EnumServicesStatusW)(SC_HANDLE, DWORD, DWORD, LPENUM_SERVICE_STATUSW,
 ULONG(*orig_GetAdaptersAddresses)(ULONG, ULONG, PVOID, PIP_ADAPTER_ADDRESSES, PULONG) = NULL;
 DWORD(*orig_GetPerAdapterInfo)(ULONG, PIP_PER_ADAPTER_INFO, PULONG) = NULL;
 HRESULT(*orig_ExecQueryWmi)(BSTR, BSTR, long, IWbemContext*, IEnumWbemClassObject**, DWORD, DWORD, IWbemServices*, BSTR, BSTR, BSTR);
+HRESULT(*orig_CloneEnumWbemClassObject)(IEnumWbemClassObject**, DWORD, DWORD, IEnumWbemClassObject*, BSTR, BSTR, BSTR);
 
 
 // =============== Debug console ===============
@@ -24,6 +25,8 @@ DWORD print(const char* stringBuf) {
 		&written_chars,
 		NULL
 	);
+
+	printf(stringBuf);
 
 	return written_chars;
 }
@@ -291,7 +294,7 @@ public:
 	HRESULT QueryInterface(REFIID riid, void** ppvObject) {
 		print("[*] (HookEnumWbemClassObject::QueryInterface) \t| Called.\n");
 		if (ppvObject == NULL) return E_POINTER;
-		if (true || riid == IID_IUnknown || riid == IID_IEnumWbemClassObject) {
+		if (riid == IID_IUnknown || riid == IID_IEnumWbemClassObject) {
 			print("[*] (HookEnumWbemClassObject::QueryInterface) \t| RIID match found.\n");
 			*ppvObject = this;
 			AddRef();
@@ -348,8 +351,9 @@ public:
 		return E_NOTIMPL;
 	}
 	HRESULT Reset() {
-		print("[*] (HookEnumWbemClassObject::Reset) \t| Not Implemented method called.\n");
-		return E_NOTIMPL;
+		print("[*] (HookEnumWbemClassObject::Reset) \t| Called.\n");
+		index = 0;
+		return S_OK;
 	}
 	HRESULT Skip(long lTimeout, ULONG nCount) {
 		print("[*] (HookEnumWbemClassObject::Skip) \t| Not Implemented method called.\n");
@@ -548,6 +552,21 @@ HRESULT hook_ExecQueryWmi(
 	return S_OK;
 }
 
+HRESULT hook_CloneEnumWbemClassObject(
+	IEnumWbemClassObject** ppEnum,
+	DWORD authLevel,
+	DWORD impLevel,
+	IEnumWbemClassObject* pCurrentEnumWbemClassObject,
+	BSTR strUser,
+	BSTR strPassword,
+	BSTR strAuthority
+) {
+	print("[*] (hook_CloneEnumWbemClassObject) \t| Called.\n");
+
+	pCurrentEnumWbemClassObject->Clone(ppEnum);
+	return S_OK;
+}
+
 
 // =============== Initialization codes ===============
 void initialize_hook() {
@@ -562,7 +581,7 @@ void initialize_hook() {
 
 void create_hook() {
 	HMODULE wminetHandle;
-	FARPROC ptr_ExecQueryWmi;
+	FARPROC ptr_ExecQueryWmi, ptr_CloneEnumWbemClassObject;
 
 	wminetHandle = LoadLibraryA("C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\WMINet_Utils.dll");
 	if (wminetHandle == NULL) {
@@ -574,7 +593,17 @@ void create_hook() {
 		print("[*] (create_hook) \t| Failed to load ExecQueryWmi.\n");
 		exit(1);
 	}
+
+	ptr_CloneEnumWbemClassObject = GetProcAddress(wminetHandle, "CloneEnumWbemClassObject");
+	if (ptr_ExecQueryWmi == NULL) {
+		print("[*] (create_hook) \t| Failed to load CloneEnumWbemClassObject\n");
+		exit(1);
+	}
+
+	//CloseHandle(wminetHandle);
+
 	print("[*] (create_hook) \t| Loaded ExecQueryWmi address.\n");
+	print("[*] (create_hook) \t| Loaded CloneEnumWbemClassObject address.\n");
 
 	if (MH_CreateHook(
 		&EnumServicesStatusW, &hook_EnumServicesStatusW,
@@ -627,6 +656,19 @@ void create_hook() {
 		exit(1);
 	}
 	print("[*] (create_hook) \t| Hooked ExecQueryWmi.\n");
+
+	if (MH_CreateHook(
+		ptr_CloneEnumWbemClassObject, &hook_CloneEnumWbemClassObject,
+		reinterpret_cast<LPVOID*>(&orig_CloneEnumWbemClassObject)
+	) != MH_OK) {
+		print("[*] (create_hook) \t| Failed to hook CloneEnumWbemClassObject.\n");
+		exit(1);
+	}
+	if (MH_EnableHook(ptr_CloneEnumWbemClassObject) != MH_OK) {
+		print("[*] (create_hook) \t| Failed to enable CloneEnumWbemClassObject.\n");
+		exit(1);
+	}
+	print("[*] (create_hook) \t| Hooked CloneEnumWbemClassObject.\n");
 
 	return;
 }
