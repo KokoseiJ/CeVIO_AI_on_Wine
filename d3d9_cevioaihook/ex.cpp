@@ -2,7 +2,8 @@
 
 HANDLE consoneHandle;
 
-Linkedlist *llist;
+Linkedlist* llist;
+Linkedlist* network_llist;
 
 BOOL(*orig_EnumServicesStatusW)(SC_HANDLE, DWORD, DWORD, LPENUM_SERVICE_STATUSW, DWORD, LPDWORD, LPDWORD, LPDWORD) = NULL;
 ULONG(*orig_GetAdaptersAddresses)(ULONG, ULONG, PVOID, PIP_ADAPTER_ADDRESSES, PULONG) = NULL;
@@ -26,7 +27,7 @@ DWORD print(const char* stringBuf) {
 		NULL
 	);
 
-	printf(stringBuf);
+	//printf(stringBuf);
 
 	return written_chars;
 }
@@ -123,6 +124,51 @@ PIP_ADAPTER_ADDRESSES format_adapters() {
 	return rtnval;
 }
 
+void init_wmi_network_llist() {
+	COMEnumType* enumdata;
+	void* buffer;
+	
+	if (network_llist != NULL) return;
+
+	buffer = calloc(17, sizeof(wchar_t));
+	if (buffer == NULL) {
+		print("[*] (init_wmi_network_llist) \t| Failed to allocate buffer.\n");
+		exit(1);
+	}
+	wcscpy_s((wchar_t*)buffer, 17, L"IA BEST VOCALOID\0");
+	enumdata = (COMEnumType*)calloc(1, sizeof(enumdata));
+	if (enumdata == NULL) {
+		print("[*] (init_wmi_network_llist) \t| Failed to allocate buffer.\n");
+		exit(1);
+	}
+	*enumdata = {
+		CIM_STRING,
+		buffer
+	};
+	network_llist = llist_put(network_llist, "NetConnectionID", enumdata, sizeof(enumdata));
+	network_llist = llist_put(network_llist, "Name", enumdata, sizeof(enumdata));
+	network_llist = llist_put(network_llist, "AdapterType", enumdata, sizeof(enumdata));
+
+	buffer = calloc(1, sizeof(bool));
+	if (buffer == NULL) {
+		print("[*] (init_wmi_network_llist) \t| Failed to allocate buffer.\n");
+		exit(1);
+	}
+	*((bool*)buffer) = true;
+	enumdata = (COMEnumType*)calloc(1, sizeof(enumdata));
+	if (enumdata == NULL) {
+		print("[*] (init_wmi_network_llist) \t| Failed to allocate buffer.\n");
+		exit(1);
+	}
+	*enumdata = {
+		CIM_BOOLEAN,
+		buffer
+	};
+
+	network_llist = llist_put(network_llist, "NetEnabled", enumdata, sizeof(enumdata));
+	network_llist = llist_put(network_llist, "PhysicalAdapter", enumdata, sizeof(enumdata));
+}
+
 
 // =============== WMI Class implementations ===============
 class HookWbemClassObject : public IWbemClassObject {
@@ -148,10 +194,13 @@ public:
 		print("[*] (HookWbemClassObject::QueryInterface) \t| Called.\n");
 		if (ppvObject == NULL) return E_POINTER;
 		if (riid == IID_IUnknown || riid == IID_IWbemClassObject) {
+			print("[*] (HookWbemClassObject::QueryInterface) \t| RIID match found.\n");
 			*ppvObject = this;
 			AddRef();
 			return S_OK;
 		}
+
+		print("[*] (HookWbemClassObject::QueryInterface) \t| RIID match not found.\n");
 		return E_NOINTERFACE;
 	}
 	ULONG Release() {
@@ -192,16 +241,79 @@ public:
 		return E_NOTIMPL;
 	}
 	HRESULT EndEnumeration(void) {
-		print("[*] (HookWbemClassObject::ndEnumeration) \t| Not implemented method called.\n");
+		print("[*] (HookWbemClassObject::EndEnumeration) \t| Not implemented method called.\n");
 		return E_NOTIMPL;
 	}
 	HRESULT EndMethodEnumeration(void) {
-		print("[*] (HookWbemClassObject::ndMethodEnumeration) \t| Not implemented method called.\n");
+		print("[*] (HookWbemClassObject::EndMethodEnumeration) \t| Not implemented method called.\n");
 		return E_NOTIMPL;
 	}
 	HRESULT Get(LPCWSTR wszName, long lFlags, VARIANT* pVal, CIMTYPE* pType, long* plFlavor) {
-		print("[*] (HookWbemClassObject::Get) \t| Not implemented method called.\n");
-		return E_NOTIMPL;
+		char stringBuf[256], mbsbuf[128];
+		Linkedlist* listobj;
+		size_t i;
+
+		wcstombs_s(&i, mbsbuf, 128, wszName, 128 * sizeof(char));
+
+		sprintf_s(
+			stringBuf,
+			256 * sizeof(char),
+			"[*] (HookWbemClassObject::Get) \t| Called. Name: %s\n",
+			mbsbuf
+		);
+		print(stringBuf);
+
+		if (strcmp(mbsbuf, "__GENUS") == 0) {
+			*pType = CIM_SINT32;
+			VariantInit(pVal);
+			if (VariantChangeType(pVal, pVal, NULL, *pType) != S_OK) {
+				print("[*] (HookWbemClassObject::Get) \t| VariantChangeType failed.\n");
+				exit(1);
+			}
+
+			pVal->intVal = WBEM_GENUS_CLASS;
+
+			return WBEM_S_NO_ERROR;
+		}
+		else if (strcmp(mbsbuf, "__RELPATH") == 0) {
+			*pType = CIM_STRING;
+			VariantInit(pVal);
+			if (VariantChangeType(pVal, pVal, NULL, *pType) != S_OK) {
+				print("[*] (HookWbemClassObject::Get) \t| VariantChangeType failed.\n");
+				exit(1);
+			}
+
+			pVal->bstrVal = SysAllocString(L"Win32_NetworkAdapter.Name=\"CIM_NetworkAdapter\"\0");
+
+			return WBEM_S_NO_ERROR;
+		}
+
+		listobj = llist_get(this->llist, mbsbuf);
+
+		if (listobj == NULL) {
+			print("[*] (HookWbemClassObject::Get) \t| Entry not found.\n");
+			*pType = NULL;
+			return WBEM_E_NOT_FOUND;
+		}
+
+		*pType = ((COMEnumType*)(listobj->value))->type;
+
+		VariantInit(pVal);
+		if (VariantChangeType(pVal, pVal, NULL, *pType) != S_OK) {
+			print("[*] (HookWbemClassObject::Get) \t| VariantChangeType failed.\n");
+			exit(1);
+		}
+
+		switch (*pType) {
+		case CIM_STRING:
+			pVal->bstrVal = SysAllocString((wchar_t*)(((COMEnumType*)(listobj->value))->data));
+			break;
+		case CIM_BOOLEAN:
+			pVal->boolVal = *((bool*)(((COMEnumType*)(listobj->value))->data));
+			break;
+		}
+
+		return WBEM_S_NO_ERROR;
 	}
 	HRESULT GetMethod(LPCWSTR wszName, long lFlags, IWbemClassObject** ppInSignature, IWbemClassObject** ppOutSignature) {
 		print("[*] (HookWbemClassObject::GetMethod) \t| Not implemented method called.\n");
@@ -338,7 +450,7 @@ public:
 			ptr = new HookWbemClassObject(llist);
 			buffer = malloc(sizeof(HookWbemClassObject));
 			memcpy(buffer, ptr, sizeof(HookWbemClassObject));
-			apObjects[0] = (IWbemClassObject *)buffer;
+			apObjects[0] = (IWbemClassObject*)buffer;
 			*puReturned = 1;
 			if (uCount == 1) return WBEM_S_NO_ERROR;
 		}
@@ -546,7 +658,14 @@ HRESULT hook_ExecQueryWmi(
 	);
 	print(stringBuf);
 
-	*ppEnum = new HookEnumWbemClassObject(NULL);
+	if (wcscmp(strQuery, L"select Name, NetConnectionID, AdapterType, PhysicalAdapter, NetEnabled from Win32_NetworkAdapter") != 0) {
+		print("[*] (hook_ExecQueryWmi) \t| Non-network query, proxying the call...\n");
+		return orig_ExecQueryWmi(strQueryLanguage, strQuery, lFlags, pCtx, ppEnum, authLevel, impLevel, pCurrentNamespace, strUser, strPassword, strAuthority);
+	}
+
+	init_wmi_network_llist();
+
+	*ppEnum = new HookEnumWbemClassObject(network_llist);
 
 	//return 0x80041000;
 	return S_OK;

@@ -16,6 +16,11 @@
 #include "llist.h"
 #include "base64.h"
 
+typedef struct comenumtype {
+	CIMTYPE type;
+	void* data;
+} COMEnumType;
+
 void ex_start();
 
 #endif
