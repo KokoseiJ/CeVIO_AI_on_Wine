@@ -2,7 +2,7 @@
 
 HANDLE consoneHandle;
 
-Linkedlist* llist;
+Linkedlist* llist, * network_llist = NULL, * volume_llist = NULL, * sound_llist = NULL;
 
 BOOL(*orig_EnumServicesStatusW)(SC_HANDLE, DWORD, DWORD, LPENUM_SERVICE_STATUSW, DWORD, LPDWORD, LPDWORD, LPDWORD) = NULL;
 ULONG(*orig_GetAdaptersAddresses)(ULONG, ULONG, PVOID, PIP_ADAPTER_ADDRESSES, PULONG) = NULL;
@@ -123,10 +123,11 @@ PIP_ADAPTER_ADDRESSES format_adapters() {
 	return rtnval;
 }
 
-Linkedlist* init_wmi_network_llist() {
+void init_wmi_network_llist() {
 	COMEnumType* enumdata;
 	void* buffer;
-	Linkedlist* network_llist = NULL;
+	
+	if (network_llist != NULL) return;
 
 	buffer = calloc(17, sizeof(wchar_t));
 	if (buffer == NULL) {
@@ -166,15 +167,16 @@ Linkedlist* init_wmi_network_llist() {
 	network_llist = llist_put(network_llist, "NetEnabled", enumdata, sizeof(enumdata));
 	network_llist = llist_put(network_llist, "PhysicalAdapter", enumdata, sizeof(enumdata));
 
-	return network_llist;
+	return;
 }
 
-Linkedlist* init_wmi_volume_list() {
+void init_wmi_volume_llist() {
 	COMEnumType* enumdata;
 	char* volumeserial;
 	wchar_t* wcsvolserial;
-	Linkedlist* rtnllist = NULL;
 	size_t i;
+
+	if (volume_llist != NULL) return;
 
 	volumeserial = (char*)(llist_get(llist, "hdPrimarySerial")->value);
 
@@ -192,9 +194,9 @@ Linkedlist* init_wmi_volume_list() {
 		wcsvolserial
 	};
 
-	rtnllist = llist_put(rtnllist, "VolumeSerialNumber", enumdata, sizeof(enumdata));
+	volume_llist = llist_put(volume_llist, "VolumeSerialNumber", enumdata, sizeof(enumdata));
 
-	return rtnllist;
+	return;
 }
 // =============== WMI Class implementations ===============
 class HookWbemClassObject : public IWbemClassObject {
@@ -298,7 +300,7 @@ public:
 				exit(1);
 			}
 
-			pVal->intVal = WBEM_GENUS_CLASS;
+			pVal->intVal = WBEM_GENUS_INSTANCE;
 
 			return WBEM_S_NO_ERROR;
 		}
@@ -478,9 +480,7 @@ public:
 		if (index++ == 0) {
 			print("[*] (HookEnumWbemClassObject::Next) \t| apObjects[0] == wbemClassObject\n");
 			ptr = new HookWbemClassObject(llist, relpath);
-			buffer = malloc(sizeof(HookWbemClassObject));
-			memcpy(buffer, ptr, sizeof(HookWbemClassObject));
-			apObjects[0] = (IWbemClassObject*)buffer;
+			apObjects[0] = ptr;
 			*puReturned = 1;
 			if (uCount == 1) return WBEM_S_NO_ERROR;
 		}
@@ -680,7 +680,6 @@ HRESULT hook_ExecQueryWmi(
 	BSTR strAuthority
 ) {
 	char stringBuf[256];
-	Linkedlist* wmi_llist;
 
 	sprintf_s(
 		stringBuf,
@@ -691,13 +690,13 @@ HRESULT hook_ExecQueryWmi(
 	print(stringBuf);
 
 	if (wcscmp(strQuery, L"select Name, NetConnectionID, AdapterType, PhysicalAdapter, NetEnabled from Win32_NetworkAdapter") == 0) {
-		wmi_llist = init_wmi_network_llist();
-		*ppEnum = new HookEnumWbemClassObject(wmi_llist, L"Win32_NetworkAdapter.Name=\"CIM_NetworkAdapter\"\0");
+		init_wmi_network_llist();
+		*ppEnum = new HookEnumWbemClassObject(network_llist, L"Win32_NetworkAdapter.Name=\"CIM_NetworkAdapter\"\0");
 		return S_OK;
 	}
 	else if (wcscmp(strQuery, L"select VolumeSerialNumber from Win32_LogicalDisk where DeviceID=\"C:\"") == 0) {
-		wmi_llist = init_wmi_volume_list();
-		*ppEnum = new HookEnumWbemClassObject(wmi_llist, L"Win32_LogicalDisk.Name=\"CIM_LogicalDisk\"\0");
+		init_wmi_volume_llist();
+		*ppEnum = new HookEnumWbemClassObject(volume_llist, L"Win32_LogicalDisk.Name=\"CIM_LogicalDisk\"\0");
 		return S_OK;
 	}
 

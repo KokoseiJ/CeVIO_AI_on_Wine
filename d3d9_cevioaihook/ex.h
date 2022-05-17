@@ -21,6 +21,11 @@ typedef struct comenumtype {
 	void* data;
 } COMEnumType;
 
+typedef struct wbemclasstype {
+	const wchar_t* relpath;
+	Linkedlist* com_llist;
+} WbemClassType;
+
 void ex_start();
 
 #endif
