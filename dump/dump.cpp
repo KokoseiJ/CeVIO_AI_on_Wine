@@ -1,4 +1,6 @@
 ﻿#pragma comment(lib, "iphlpapi.lib")
+#pragma comment(lib, "comsuppw.lib")
+#pragma comment(lib, "Wbemuuid.lib")
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,7 +10,11 @@
 #include <Windows.h>
 #include <iphlpapi.h>
 #include <ws2def.h>
+#include <WbemCli.h>
+#include <comutil.h>
 #include "base64.h"
+
+IWbemServices* wbemServices = NULL;
 
 char* trim_space(char* string) {
     while (*string != NULL) {
@@ -19,6 +25,63 @@ char* trim_space(char* string) {
         string++;
     }
     return string;
+}
+
+
+void prepare_com() {
+    HRESULT hres;
+    IWbemLocator* pLoc = 0;
+
+    hres = CoInitializeEx(0, COINIT_MULTITHREADED);
+
+    hres = CoInitializeSecurity(
+        NULL,
+        -1,
+        NULL,
+        NULL,
+        RPC_C_IMP_LEVEL_DEFAULT,
+        RPC_C_IMP_LEVEL_IMPERSONATE,
+        NULL,
+        EOAC_NONE,
+        NULL
+    );
+
+    hres = CoCreateInstance(
+        CLSID_WbemLocator,
+        0,
+        CLSCTX_INPROC_SERVER,
+        IID_IWbemLocator,
+        (LPVOID*)&pLoc
+    );
+
+    hres = pLoc->ConnectServer(
+        _bstr_t(L"ROOT\\CIMV2"),
+        NULL,
+        NULL,
+        0,
+        NULL,
+        0,
+        0,
+        &wbemServices
+    );
+
+    hres = CoSetProxyBlanket(
+        wbemServices,
+        RPC_C_AUTHN_WINNT,
+        RPC_C_AUTHZ_NONE,
+        NULL,
+        RPC_C_AUTHN_LEVEL_CALL,
+        RPC_C_IMP_LEVEL_IMPERSONATE,
+        NULL,
+        EOAC_NONE
+    );
+
+    pLoc->Release();
+}
+
+void uninit_com() {
+    wbemServices->Release();
+    CoUninitialize();
 }
 
 
@@ -33,27 +96,57 @@ unsigned long dump_adapters(void* buffer, unsigned long* bufsize) {
 }
 
 char* dump_hdserial() {
-    char stringBuf[128], *returnBuf;
-    FILE* pPipe;
+    HRESULT hres;
+    IEnumWbemClassObject* enumWbemObj = NULL;
+    IWbemClassObject* wbemClassObj = NULL;
+    ULONG uReturn;
+    VARIANT value;
+    size_t strsize;
+    char* returnBuf;
 
-    pPipe = _popen("wmic logicaldisk get volumeserialnumber", "rt");
+    hres = wbemServices->ExecQuery(
+        _bstr_t("WQL"),
+        _bstr_t("SELECT VolumeSerialNumber FROM Win32_LogicalDisk"),
+        WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY,
+        NULL,
+        &enumWbemObj
+    );
 
-    fgets(stringBuf, 128, pPipe);
-    fgets(stringBuf, 128, pPipe);
-
-    trim_space(stringBuf);
-
-    returnBuf = (char*)calloc(strlen(stringBuf) + 1, sizeof(char));
-    if (returnBuf == NULL) {
-        printf("[*] Failed to allocate returnBuf.\n");
+    hres = enumWbemObj->Next(WBEM_INFINITE, 1, &wbemClassObj, &uReturn);
+    if (uReturn != 1) {
+        printf("[*] Error while dumping hdserial.\n");
         exit(1);
     }
 
-    strcpy_s(returnBuf, (strlen(stringBuf) + 1) * sizeof(char), stringBuf);
+    hres = wbemClassObj->Get(L"VolumeSerialNumber", 0, &value, 0, 0);
+    
+    strsize = wcslen(value.bstrVal);
+    returnBuf = (char*)calloc(strsize + 1, sizeof(char));
 
-    printf("%s\n", returnBuf);
+    wcstombs_s(
+        &strsize,
+        returnBuf,
+        (strsize + 1) * sizeof(char),
+        value.bstrVal,
+        strsize * sizeof(char)
+    );
 
     return returnBuf;
+}
+
+
+IEnumWbemClassObject* dump_sounddev() {
+    HRESULT hres;
+    IEnumWbemClassObject* enumWbemObj;
+    hres = wbemServices->ExecQuery(
+        _bstr_t("WQL"),
+        _bstr_t("SELECT DeviceID, Caption FROM Win32_SoundDevice"),
+        WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY,
+        NULL,
+        &enumWbemObj
+    );
+
+    return enumWbemObj;
 }
 
 
@@ -84,12 +177,22 @@ void write_dump(FILE* pFile, const char* name, void* buffer, size_t bufsize) {
 
 
 int main() {
-    unsigned long bufsize;
-    void* buffer;
-    PIP_ADAPTER_ADDRESSES addrPtr;
     FILE* pFile;
     char stringBuf[256], * strPtr;
     uint8_t i = 0;
+
+    unsigned long bufsize;
+    void* buffer;
+    
+    HRESULT hres;
+    PIP_ADAPTER_ADDRESSES addrPtr;
+    IEnumWbemClassObject* enumWbemObj = NULL;
+    IWbemClassObject* wbemClassObj = NULL;
+    ULONG uReturn;
+    VARIANT vtval;
+    size_t strsize;
+
+    prepare_com();
 
     fopen_s(&pFile, "dump.cfg", "w");
     if (pFile == NULL) {
@@ -105,6 +208,7 @@ int main() {
     }
     dump_adapters(buffer, &bufsize);
 
+    i = 0;
     addrPtr = (PIP_ADAPTER_ADDRESSES)buffer;
     while (addrPtr != NULL) {
         sprintf_s(stringBuf, 256 * sizeof(char), "adapter%u", i);
@@ -130,8 +234,36 @@ int main() {
 
     strPtr = dump_hdserial();
     write_dump(pFile, "hdPrimarySerial", strPtr, (strlen(strPtr) + 1) * sizeof(char));
+    
+    i = 0;
+    enumWbemObj = dump_sounddev();
+    while (enumWbemObj) {
+        hres = enumWbemObj->Next(WBEM_INFINITE, 1, &wbemClassObj, &uReturn);
+        if (uReturn == 0) break;
+
+        hres = wbemClassObj->Get(L"DeviceID", 0, &vtval, 0, 0);
+        strsize = wcslen(vtval.bstrVal);
+        strPtr = (char*)calloc(strsize + 1, sizeof(char));
+        wcstombs_s(&strsize, strPtr, (strsize + 1) * sizeof(char), vtval.bstrVal, strsize * sizeof(char));
+        sprintf_s(stringBuf, 256 * sizeof(char), "sound%uid", i);
+        write_dump(pFile, stringBuf, strPtr, (strsize) * sizeof(char));
+        free(strPtr);
+
+        hres = wbemClassObj->Get(L"Caption", 0, &vtval, 0, 0);
+        strsize = wcslen(vtval.bstrVal);
+        strPtr = (char*)calloc(strsize + 1, sizeof(char));
+        wcstombs_s(&strsize, strPtr, (strsize + 1) * sizeof(char), vtval.bstrVal, strsize * sizeof(char));
+        sprintf_s(stringBuf, 256 * sizeof(char), "sound%ucaption", i);
+        write_dump(pFile, stringBuf, strPtr, (strsize) * sizeof(char));
+        free(strPtr);
+
+        i++;
+    }
+    write_dump(pFile, "soundlen", &i, sizeof(uint8_t));
 
     fclose(pFile);
+
+    uninit_com();
 
     return 0;
 }
