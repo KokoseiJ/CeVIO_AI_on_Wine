@@ -2,7 +2,8 @@
 
 HANDLE consoneHandle;
 
-Linkedlist* llist, * network_llist = NULL, * volume_llist = NULL, * sound_llist = NULL;
+Linkedlist* llist, * network_llist = NULL, * volume_llist = NULL, ** sound_llist_list = NULL;
+size_t sound_llist_len = 0;
 
 BOOL(*orig_EnumServicesStatusW)(SC_HANDLE, DWORD, DWORD, LPENUM_SERVICE_STATUSW, DWORD, LPDWORD, LPDWORD, LPDWORD) = NULL;
 ULONG(*orig_GetAdaptersAddresses)(ULONG, ULONG, PVOID, PIP_ADAPTER_ADDRESSES, PULONG) = NULL;
@@ -198,6 +199,69 @@ void init_wmi_volume_llist() {
 
 	return;
 }
+
+void init_wmi_sound_llist_list() {
+	uint8_t soundlen, i;
+	char *strPtr, nameBuf[256];
+	wchar_t* wcsPtr;
+	Linkedlist* sound_llist = NULL;
+	COMEnumType* enumdata;
+	size_t _;
+
+	if (sound_llist_list != NULL) return;
+
+	soundlen = *(uint8_t*)(llist_get(llist, "soundlen")->value);
+
+	sound_llist_list = (Linkedlist**)calloc(soundlen, sizeof(void*));
+	if (sound_llist_list == NULL) {
+		print("[*] (init_wmi_sound_wbemclass) \t| Failed to allocate buffer.\n");
+		exit(1);
+	}
+
+	for (i = 0; i < soundlen; i++) {
+		sprintf_s(nameBuf, 256 * sizeof(char), "sound%uid", i);
+		strPtr = (char*)llist_get(llist, nameBuf)->value;
+
+		wcsPtr = (wchar_t*)calloc(strlen(strPtr) + 1, sizeof(wchar_t));
+		mbstowcs_s(&_, wcsPtr, strlen(strPtr) + 1, strPtr, (strlen(strPtr) + 1) * sizeof(wchar_t));
+
+		enumdata = (COMEnumType*)calloc(1, sizeof(COMEnumType));
+		if (enumdata == NULL) {
+			print("[*] (init_wmi_sound_wbemclass) \t| Failed to allocate buffer.\n");
+			exit(1);
+		}
+		*enumdata = {
+			CIM_STRING,
+			wcsPtr
+		};
+		sound_llist = llist_put(sound_llist, "DeviceID", enumdata, sizeof(enumdata));
+
+		sprintf_s(nameBuf, 256 * sizeof(char), "sound%ucaption", i);
+		strPtr = (char*)llist_get(llist, nameBuf)->value;
+
+		wcsPtr = (wchar_t*)calloc(strlen(strPtr) + 1, sizeof(wchar_t));
+		mbstowcs_s(&_, wcsPtr, strlen(strPtr) + 1, strPtr, (strlen(strPtr) + 1) * sizeof(wchar_t));
+
+		enumdata = (COMEnumType*)calloc(1, sizeof(COMEnumType));
+		if (enumdata == NULL) {
+			print("[*] (init_wmi_sound_wbemclass) \t| Failed to allocate buffer.\n");
+			exit(1);
+		}
+		*enumdata = {
+			CIM_STRING,
+			wcsPtr
+		};
+		sound_llist = llist_put(sound_llist, "Caption", enumdata, sizeof(enumdata));
+		sound_llist_list[i] = sound_llist;
+		sound_llist = NULL;
+	}
+
+	sound_llist_len = soundlen;
+
+	return;
+}
+
+
 // =============== WMI Class implementations ===============
 class HookWbemClassObject : public IWbemClassObject {
 public:
@@ -401,7 +465,7 @@ public:
 		return E_NOTIMPL;
 	}
 	HRESULT SpawnInstance(long lFlags, IWbemClassObject** ppNewInstance) {
-		print("[*] (HookWbemClassObject::pawnInstance) \t| Not implemented method called.\n");
+		print("[*] (HookWbemClassObject::spawnInstance) \t| Not implemented method called.\n");
 		return E_NOTIMPL;
 	}
 
@@ -414,13 +478,27 @@ protected:
 class HookEnumWbemClassObject : public IEnumWbemClassObject {
 public:
 	HookEnumWbemClassObject(Linkedlist* llist, const wchar_t* relpath) {
-		this->llist = llist;
+		this->llist_list = (Linkedlist**)calloc(1, sizeof(void*));
+		if (this->llist_list == NULL) {
+			print("[*] (HookEnumWbemClassObject) \t| Failed to allocate buffer.\n");
+			exit(1);
+		}
+		this->llist_list[0] = llist;
+		this->relpath = relpath;
+		this->llist_len = 1;
+	}
+
+	HookEnumWbemClassObject(Linkedlist** llist_list, size_t len, const wchar_t* relpath) {
+		this->llist_list = llist_list;
+		this->llist_len = len;
 		this->relpath = relpath;
 	}
-	HookEnumWbemClassObject(Linkedlist* llist, const wchar_t* relpath, ULONG idx) {
-		this->llist = llist;
+
+	HookEnumWbemClassObject(Linkedlist** llist_list, size_t len, const wchar_t* relpath, ULONG index) {
+		this->llist_list = llist_list;
+		this->llist_len = len;
 		this->relpath = relpath;
-		this->index = idx;
+		this->index = index;
 	}
 
 	ULONG AddRef() {
@@ -463,11 +541,12 @@ public:
 
 	HRESULT Clone(IEnumWbemClassObject** ppEnum) {
 		print("[*] (HookEnumWbemClassObject::Clone) \t| Called.\n");
-		*ppEnum = new HookEnumWbemClassObject(llist, relpath, index);
+		*ppEnum = new HookEnumWbemClassObject(this->llist_list, this->llist_len, this->relpath, index);
 		return S_OK;
 	}
 	HRESULT Next(long lTimeout, ULONG uCount, IWbemClassObject** apObjects, ULONG* puReturned) {
 		char stringBuf[256];
+		int i;
 
 		sprintf_s(
 			stringBuf,
@@ -477,14 +556,14 @@ public:
 		);
 		print(stringBuf);
 
-		if (index++ == 0) {
-			print("[*] (HookEnumWbemClassObject::Next) \t| apObjects[0] == wbemClassObject\n");
-			ptr = new HookWbemClassObject(llist, relpath);
-			apObjects[0] = ptr;
-			*puReturned = 1;
-			if (uCount == 1) return WBEM_S_NO_ERROR;
+		*puReturned = 0;
+
+		for (i = 0; i < uCount && this->index < this->llist_len; i++) {
+			apObjects[i] = new HookWbemClassObject(this->llist_list[index], this->relpath);
+			(*puReturned)++;
+			index++;
 		}
-		else *puReturned = 0;
+		if (uCount == *puReturned) return WBEM_S_NO_ERROR;
 
 		return WBEM_S_FALSE;
 	}
@@ -505,9 +584,9 @@ public:
 protected:
 	ULONG refcount = 1;
 	ULONG index = 0;
-	Linkedlist* llist = NULL;
 	void* buffer = NULL;
-	IWbemClassObject* ptr = NULL;
+	Linkedlist** llist_list;
+	size_t llist_len = 0;
 	const wchar_t* relpath = NULL;
 };
 
@@ -697,6 +776,11 @@ HRESULT hook_ExecQueryWmi(
 	else if (wcscmp(strQuery, L"select VolumeSerialNumber from Win32_LogicalDisk where DeviceID=\"C:\"") == 0) {
 		init_wmi_volume_llist();
 		*ppEnum = new HookEnumWbemClassObject(volume_llist, L"Win32_LogicalDisk.Name=\"CIM_LogicalDisk\"\0");
+		return S_OK;
+	}
+	else if (wcscmp(strQuery, L"select DeviceID from Win32_SoundDevice") == 0 || wcscmp(strQuery, L"select Caption from Win32_SoundDevice") == 0) {
+		init_wmi_sound_llist_list();
+		*ppEnum = new HookEnumWbemClassObject(sound_llist_list, sound_llist_len, L"Win32_SoundDevice.Name=\"CIM_SoundDevice\"\0");
 		return S_OK;
 	}
 
