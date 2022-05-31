@@ -30,6 +30,12 @@
     <ClCompile Include="base64.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="util.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="wmi.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ex.h">
@@ -39,6 +45,12 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="base64.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="util.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="wmi.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -12,19 +12,11 @@
 #include <synchapi.h>
 #include <WbemCli.h>
 #include <new.h>
+#include "util.h"
+#include "wmi.h"
 #include "MinHook.h"
 #include "llist.h"
 #include "base64.h"
-
-typedef struct comenumtype {
-	CIMTYPE type;
-	void* data;
-} COMEnumType;
-
-typedef struct wbemclasstype {
-	const wchar_t* relpath;
-	Linkedlist* com_llist;
-} WbemClassType;
 
 void ex_start();
 
