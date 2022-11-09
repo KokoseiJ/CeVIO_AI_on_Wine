@@ -4,17 +4,20 @@ import pefile
 dllpath = input("DLL dir: ")
 dll = pefile.PE(dllpath)
 
-repath_defs = re.sub(r"\.[dD][lL]{2}", "", dllpath)
-repath = repath_defs.replace("\\", "\\\\")
+if "drive_c" in dllpath:
+    dllpath = re.sub(r".*?drive_c", "C:", dllpath).replace("/", "\\")
+
+repath = re.sub(r"\.[dD][lL]{2}", "", dllpath)
+repath_escaped = repath.replace("\\", "\\\\")
 
 pragma = [
-    f"""#pragma comment(linker, "/export:{symbol.name.decode()}=\\"{repath}.{symbol.name.decode()}\\"")"""
+    f"""#pragma comment(linker, "/export:{symbol.name.decode()}=\\"{repath_escaped}.{symbol.name.decode()}\\"")"""
     for symbol in dll.DIRECTORY_ENTRY_EXPORT.symbols
     if symbol.name
 ]
 
 defs = [
-    f"""  {symbol.name.decode()}="{repath_defs}".{symbol.name.decode()}"""
+    f"""  {symbol.name.decode()}="{repath}".{symbol.name.decode()}"""
     for symbol in dll.DIRECTORY_ENTRY_EXPORT.symbols
     if symbol.name
 ]
