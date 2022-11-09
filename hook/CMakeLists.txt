@@ -8,7 +8,8 @@ endif()
 
 project(CeVIO_AI_DllHook VERSION 1.0 LANGUAGES C)
 
-add_library(hook SHARED src/main.c)
+set(CMAKE_SHARED_LIBRARY_PREFIX "")
+add_library(hook SHARED src/dllmain.c src/dllmain.def)
 
 target_link_libraries(hook minhook)
 
