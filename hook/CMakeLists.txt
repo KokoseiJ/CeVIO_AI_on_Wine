@@ -11,5 +11,7 @@ project(CeVIO_AI_DllHook VERSION 1.0 LANGUAGES C)
 set(CMAKE_SHARED_LIBRARY_PREFIX "")
 add_library(hook SHARED src/dllmain.c src/dllmain.def)
 
+set_target_properties(hook PROPERTIES OUTPUT_NAME imm32)
+
 target_link_libraries(hook minhook)
 
