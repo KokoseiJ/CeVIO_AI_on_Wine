@@ -15,3 +15,16 @@ set_target_properties(hook PROPERTIES OUTPUT_NAME imm32)
 
 target_link_libraries(hook minhook)
 
+if (MINGW)
+	set(DIST_FOLDER ${CMAKE_BINARY_DIR}/dist/hook)
+	add_custom_command(
+		TARGET hook
+		POST_BUILD
+		COMMENT "Constructing Dist Folder..."
+		COMMAND mkdir -p ${DIST_FOLDER}
+		COMMAND cp ${CMAKE_BINARY_DIR}/hook/imm32.dll ${DIST_FOLDER}
+		COMMAND cp ${CMAKE_SOURCE_DIR}/misc/*.reg ${DIST_FOLDER}
+		COMMAND zip -j ${DIST_FOLDER}/../hook.zip ${DIST_FOLDER}/*
+	)
+endif(MINGW)
+
