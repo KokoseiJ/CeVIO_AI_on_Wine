@@ -21,6 +21,7 @@ if (MINGW)
 		TARGET hook
 		POST_BUILD
 		COMMENT "Constructing Dist Folder..."
+		COMMAND rm -rf ${DIST_FOLDER} ${DIST_FOLDER}/../hook.zip
 		COMMAND mkdir -p ${DIST_FOLDER}
 		COMMAND cp ${CMAKE_BINARY_DIR}/hook/imm32.dll ${DIST_FOLDER}
 		COMMAND cp ${CMAKE_SOURCE_DIR}/misc/*.reg ${DIST_FOLDER}
