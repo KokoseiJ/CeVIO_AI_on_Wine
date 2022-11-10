@@ -1,5 +1,6 @@
 #include "debug.h"
 #include "misc.h"
+#include "hooks.h"
 #include <MinHook.h>
 #include <stdio.h>
 #include <windows.h>
@@ -9,6 +10,10 @@
 void init_all() {
     if (init_console()) {
         error_message("Failed to initialize console!\nIt shouldn't interfere with the functionalty, but expect debug messages to not show up.");
+    }
+
+    if (init_hooks()) {
+        error_message("Failed to apply hooks!");
     }
     
     info_message("CeVIO AI on Wine Successfully loaded!\nCopyright (C) 2022 Wonjun Jung (KokoseiJ)\n\nUse at your own risk, and have fun :D");
