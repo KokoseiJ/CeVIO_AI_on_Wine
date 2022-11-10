@@ -8,6 +8,10 @@ endif()
 
 project(CeVIO_AI_On_Wine VERSION 1.0 LANGUAGES C)
 
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_compile_definitions(DEBUG)
+endif()
+
 set(BUILD_SHARED_LIBS OFF)
 
 if (MINGW)
