@@ -73,15 +73,15 @@ BOOL hook_EnumServicesStatusW(
 	}
 
 	rtnval = orig_EnumServicesStatusW(
-                hSCManager,
-                dwServiceType,
-                dwServiceState,
-                lpServices,
-                cbBufSize,
-                pcbBytesNeeded,
-                lpServicesReturned,
-                lpResumeHandle
-        );
+			hSCManager,
+			dwServiceType,
+			dwServiceState,
+			lpServices,
+			cbBufSize,
+			pcbBytesNeeded,
+			lpServicesReturned,
+			lpResumeHandle
+		);
 
 	return rtnval;
 }
