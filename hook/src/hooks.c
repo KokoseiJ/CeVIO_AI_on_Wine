@@ -23,25 +23,26 @@ BOOL hook_EnumServicesStatusW(
 	BOOL rtnval;
 	size_t struct_size;
 
-	debug_printf(
-		"[*] (hook_EnumServicesStatusW) \t| Called. Type: 0x%08x, State: 0x%01x, cbBufSize: %d\n",
+	char funcname[] = "hook_EnumServicesStatusW";
+
+	debug_info(funcname, "Called. Type: 0x%08x, State: 0x%01x, cbBufSize: %d",
 		dwServiceType, dwServiceState, cbBufSize
 	);
 
 	if (dwServiceType == SERVICE_WIN32 && dwServiceState == SERVICE_STATE_ALL) {
-		debug_print("[*] (hook_EnumServicesStatusW) \t| Generating ENUM_SERVICE_STATUS...\n");
+		debug_info(funcname, "Generating ENUM_SERVICE_STATUS...");
 		
 		struct_size = sizeof(ENUM_SERVICE_STATUSW);
 		
 		if (cbBufSize == 0) {
-			debug_printf(
-				"[*] (hook_EnumServicesStatusW) \t| cbBufSize == 0, bytesNeeded = %lld\n", struct_size
+			debug_info(funcname,
+				"cbBufSize == 0, bytesNeeded = %lld", struct_size
 			);
 			*pcbBytesNeeded = struct_size;
 			return TRUE;
 		} else if (cbBufSize < struct_size) {
-			debug_printf(
-				"[!] (hook_EnumServicesStatusW) \t| cbBufSize == %d < %lld! returning FALSE\n",
+			debug_error(funcname,
+				"cbBufSize == %d < %lld! returning FALSE",
 				cbBufSize, struct_size
 			);
 			*pcbBytesNeeded = struct_size;
@@ -68,7 +69,7 @@ BOOL hook_EnumServicesStatusW(
 	}
 	
 	if (orig_EnumServicesStatusW == NULL) {
-		debug_print("[!] (hook_EnumServicesStatusW) \t| Trampoline unavailable! returning FALSE\n");
+		debug_error(funcname, "Trampoline unavailable! returning FALSE");
 		return FALSE;
 	}
 

@@ -39,6 +39,46 @@ DWORD debug_printf(char *fmt, ...) {
 #endif
 }
 
+DWORD debug_info(char *funcname, char *fmt, ...){
+#ifdef DEBUG
+	char msgBuffer[1024], buffer[1024];
+	va_list args;
+	
+	if (fmt == NULL) return 0;
+	if (hConsole == NULL) return 0;
+
+	if (funcname == NULL) funcname = "debug_log";
+
+	va_start(args, fmt);
+	vsnprintf(msgBuffer, 1024, fmt, args);
+	snprintf(buffer, 1024, GREEN "[*] (%s)\t| %s\n" RESET, funcname, msgBuffer);
+
+	return debug_print(buffer);
+#else
+	return 0;
+#endif
+}
+
+DWORD debug_error(char *funcname, char *fmt, ...) {
+#ifdef DEBUG
+	char msgBuffer[1024], buffer[1024];
+	va_list args;
+
+	if (fmt == NULL) return 0;
+	if (hConsole == NULL) return 0;
+
+	if (funcname == NULL) funcname = "debug_error";
+
+	va_start(args, fmt);
+	vsnprintf(msgBuffer, 1024, fmt, args);
+	snprintf(buffer, 1024, RED "[!] (%s)\t| %s\n" RESET, funcname, msgBuffer);
+
+	return debug_print(buffer);
+#else
+	reutrn 0;
+#endif
+}
+
 int init_console() {
 #ifdef DEBUG
 	AllocConsole();
@@ -53,12 +93,12 @@ int init_console() {
 
 
 int info_message(char *content) {
-	debug_printf("[*] (info_message) %s\n", content);
+	debug_info("info_message", content);
 	return MessageBoxA(NULL, content, window_title, MB_OK | MB_ICONINFORMATION);
 }
 
 int error_message(char *content) {
-	debug_printf("[!] (error_message) %s\n", content);
+	debug_error("error_message", content);
 	return MessageBoxA(NULL, content, window_title, MB_OK | MB_ICONERROR);
 }
 
