@@ -75,7 +75,7 @@ DWORD debug_error(char *funcname, char *fmt, ...) {
 
 	return debug_print(buffer);
 #else
-	reutrn 0;
+	return 0;
 #endif
 }
 

@@ -99,6 +99,11 @@ int init_hooks() {
 		return 1;
 	}
 
+	if (init_wminet()) {
+		error_message("Failed to initialize WMINet_Utils hook!");
+		return 1;
+	}
+
 	if (MH_EnableHook(MH_ALL_HOOKS) != MH_OK) {
 		error_message("Failed to enable hooks!");
 		return 1;
