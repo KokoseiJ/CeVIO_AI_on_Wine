@@ -1,3 +1,6 @@
 [submodule "extern/minhook"]
 	path = extern/minhook
 	url = https://github.com/TsudaKageyu/minhook
+[submodule "extern/libkcnf"]
+	path = extern/libkcnf
+	url = https://github.com/KokoseiJ/libkcnf
