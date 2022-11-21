@@ -18,9 +18,8 @@ HRESULT hook_ExecQueryWmi(
 ) {
 	char funcname[] = "hook_ExecQueryWmi";
 	debug_info(funcname,
-		"Called. lang: %S | query: %S | flags: %#010x | implevel: %d | authnlevel: %d | "
-		"user: %S | pw: 0x%08x | authority: %S",
-		strQueryLanguage, strQuery, lFlags, impLevel, authnLevel, strUser, strPassword, strAuthority);
+		"Called. lang: %S | query: %S | flags: %#010x | implevel: %d | authnlevel: %d",
+		strQueryLanguage, strQuery, lFlags, impLevel, authnLevel);
 
 	return orig_ExecQueryWmi(strQueryLanguage, strQuery, lFlags, pCtx, ppEnum, impLevel, authnLevel,
 				 pCurrentNamespace, strUser, strPassword, strAuthority);
