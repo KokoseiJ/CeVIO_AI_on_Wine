@@ -15,6 +15,8 @@ endif()
 set(BUILD_SHARED_LIBS OFF)
 
 add_subdirectory(extern/minhook)
+add_subdirectory(extern/libkcnf)
 
 add_subdirectory(hook)
+add_subdirectory(dump)
 
