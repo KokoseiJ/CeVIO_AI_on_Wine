@@ -27,7 +27,7 @@ wchar_t queries[][QUERY_LEN] = {
 
 wchar_t names[][NAME_LEN][NAME_STR_LEN] {
 	{L"Caption", L"CSDVersion", L"Version"},
-	{L"TotalVisibleMemorySize", L"FreePyhsicalMemory"},
+	{L"TotalVisibleMemorySize", L"FreePhysicalMemory"},
 	{L"Name", L"CurrentClockSpeed"},
 	{L"Caption", L"DriverVersion"},
 	{L"Caption"},
