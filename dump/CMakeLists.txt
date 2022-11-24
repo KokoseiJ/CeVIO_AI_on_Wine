@@ -11,4 +11,5 @@ project(CeVIO_AI_WinAPIDump VERSION 1.0 LANGUAGES CXX)
 add_executable(WinAPIdump main.cpp)
 
 target_link_libraries(WinAPIdump kcnf)
+target_link_options(WinAPIdump PRIVATE -static)
 
