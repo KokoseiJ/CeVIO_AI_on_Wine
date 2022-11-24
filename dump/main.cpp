@@ -41,8 +41,7 @@ IWbemServices *initialize_wbem() {
 	IWbemLocator *pLoc = NULL;
 
 	hres = CoInitializeEx(0, COINIT_MULTITHREADED); 
-	if (FAILED(hres))
-	{
+	if (FAILED(hres)) {
 		printf("[!] Failed to initialize COM: 0x%08x\n", hres);
 		return NULL;
 	}
@@ -51,8 +50,7 @@ IWbemServices *initialize_wbem() {
 		NULL, -1, NULL, NULL, RPC_C_AUTHN_LEVEL_DEFAULT,
 		RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE, NULL
 	);
-	if (FAILED(hres))
-	{
+	if (FAILED(hres)) {
 		printf("[!] Failed to initialize Security: x=0x%08x\n", hres);
 		CoUninitialize();
 		return NULL;
@@ -62,8 +60,7 @@ IWbemServices *initialize_wbem() {
 		CLSID_WbemLocator, 0, CLSCTX_INPROC_SERVER, IID_IWbemLocator,
 		(LPVOID *) &pLoc
 	);
-	if (FAILED(hres))
-	{
+	if (FAILED(hres)) {
 		printf("[!] Failed to create IWbemLocator: 0x%08x\n", hres);
 		CoUninitialize();
 		return NULL;
@@ -73,8 +70,7 @@ IWbemServices *initialize_wbem() {
 	hres = pLoc->ConnectServer(tempBstr, NULL, NULL, 0, 0, 0, 0, &pSvc);
 	SysFreeString(tempBstr);
 	
-	if (FAILED(hres))
-	{
+	if (FAILED(hres)) {
 		printf("[!] Failed to connect to CIMV2 WMI namespace: 0x%08x\n", hres);
 		pLoc->Release();
 		CoUninitialize();
@@ -85,8 +81,7 @@ IWbemServices *initialize_wbem() {
 		pSvc, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL,
 		RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE
 	);
-	if (FAILED(hres))
-	{
+	if (FAILED(hres)) {
 		printf("[!] Failed to set Proxy Blanket: 0x%08x\n", hres);
 		pSvc->Release();
 		pLoc->Release();     
