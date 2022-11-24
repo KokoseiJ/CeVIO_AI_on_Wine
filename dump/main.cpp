@@ -10,28 +10,19 @@
 #include <stdio.h>
 
 #define LEN(arr) ((int) (sizeof(arr) / sizeof(arr[0])))
-#define QUERY_LEN 100
-#define NAME_LEN 5
+#define QUERY_LEN 128
+#define NAME_LEN 6
 #define NAME_STR_LEN 30
 
 IWbemServices *pSvc = NULL;
 
-wchar_t queries[][QUERY_LEN] = {
-	L"select Caption, CSDVersion, Version from Win32_OperatingSystem",
-	L"select TotalVisibleMemorySize, FreePhysicalMemory from Win32_OperatingSystem",
-	L"select Name, CurrentClockSpeed from Win32_Processor",
-	L"select Caption, DriverVersion from Win32_VideoController",
-	L"select Caption from Win32_SoundDevice",
-	L"select Name, NetConnectionID, AdapterType, PhysicalAdapter, NetEnabled from Win32_NetworkAdapter"
-};
-
-wchar_t names[][NAME_LEN][NAME_STR_LEN] {
-	{L"Caption", L"CSDVersion", L"Version"},
-	{L"TotalVisibleMemorySize", L"FreePhysicalMemory"},
-	{L"Name", L"CurrentClockSpeed"},
-	{L"Caption", L"DriverVersion"},
-	{L"Caption"},
-	{L"Name", L"NetConnectionID", L"AdapterType", L"PhysicalAdapter", L"NetEnabled"}
+wchar_t queries[][NAME_LEN][NAME_STR_LEN] {
+	{L"Win32_OperatingSystem", L"Caption", L"CSDVersion", L"Version"},
+	{L"Win32_OperatingSystem", L"TotalVisibleMemorySize", L"FreePhysicalMemory"},
+	{L"Win32_Processor", L"Name", L"CurrentClockSpeed"},
+	{L"Win32_VideoController", L"Caption", L"DriverVersion"},
+	{L"Win32_SoundDevice", L"Caption"},
+	{L"Win32_NetworkAdapter", L"Name", L"NetConnectionID", L"AdapterType", L"PhysicalAdapter", L"NetEnabled"}
 };
 
 
@@ -95,22 +86,30 @@ IWbemServices *initialize_wbem() {
 }
 
 
-void execute_query(wchar_t *query, wchar_t keys[NAME_LEN][NAME_STR_LEN]) {
+void execute_query(int idx) {
 	static const BSTR wqlStr = SysAllocString(L"WQL");
 	static const long flags = WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY;
-
-	int i = 0;
-	ULONG uReturn = 0, returns;
+	int i;
+	ULONG uReturn, returns;
 	HRESULT hres;
+	wchar_t queryStrBuilder[QUERY_LEN] = L"select ";
 	BSTR queryStr, keyStr;
 	IEnumWbemClassObject *pEnum = NULL;
 	IWbemClassObject *pWbemObj = NULL;
 	VARIANT vt;
 	CIMTYPE cimType;
 
-	queryStr = SysAllocString(query);
+	for (i=1; i<NAME_LEN; i++) {
+		if (*queries[idx][i] == L'\0') break;
+		if (i != 1) wcscat(queryStrBuilder, L", ");
+		wcscat(queryStrBuilder, queries[idx][i]);
+	}
+	wcscat(queryStrBuilder, L" from ");
+	wcscat(queryStrBuilder, queries[idx][0]);
 
+	queryStr = SysAllocString(queryStrBuilder);
 	printf("\n\n[*] Query: %S\n", queryStr);
+
 
 	hres = pSvc->ExecQuery(wqlStr, queryStr, flags, NULL, &pEnum);
 
@@ -121,15 +120,15 @@ void execute_query(wchar_t *query, wchar_t keys[NAME_LEN][NAME_STR_LEN]) {
 		returns += uReturn;
 		printf("\n[*] %lu\n", returns);
 
-		for (i=0; i<NAME_LEN; i++) {
-			if (*keys[i] == L'\0') break;
-			keyStr = SysAllocString(keys[i]);
+		for (i=1; i<NAME_LEN; i++) {
+			if (*queries[idx][i] == L'\0') break;
+			keyStr = SysAllocString(queries[idx][i]);
 
 			VariantInit(&vt);
 			hres = pWbemObj->Get(keyStr, 0, &vt, &cimType, NULL);
 
 			if (FAILED(hres)) {
-				printf("[!] Failed to retrieve key %S!\n", keyStr);
+				printf("[!] Failed to retrieve key %S: 0x%08x\n", keyStr, hres);
 				continue;
 			}
 
@@ -160,7 +159,10 @@ int main() {
 	}
 
 	for (i=0; i<LEN(queries); i++)
-		execute_query(queries[i], names[i]);
+		execute_query(i);
+
+	pSvc->Release();
+	CoUninitialize();
 
 	return 0;
 }
