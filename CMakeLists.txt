@@ -12,6 +12,10 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_definitions(DEBUG)
 endif()
 
+if (MINGW)
+	add_compile_options(-Wall)
+endif()
+
 set(BUILD_SHARED_LIBS OFF)
 
 add_subdirectory(extern/minhook)
