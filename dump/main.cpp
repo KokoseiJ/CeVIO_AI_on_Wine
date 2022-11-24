@@ -33,7 +33,7 @@ IWbemServices *initialize_wbem() {
 
 	hres = CoInitializeEx(0, COINIT_MULTITHREADED); 
 	if (FAILED(hres)) {
-		printf("[!] Failed to initialize COM: 0x%08x\n", hres);
+		printf("[!] Failed to initialize COM: 0x%08lx\n", hres);
 		return NULL;
 	}
 
@@ -42,7 +42,7 @@ IWbemServices *initialize_wbem() {
 		RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE, NULL
 	);
 	if (FAILED(hres)) {
-		printf("[!] Failed to initialize Security: x=0x%08x\n", hres);
+		printf("[!] Failed to initialize Security: 0x%08lx\n", hres);
 		CoUninitialize();
 		return NULL;
 	}
@@ -52,7 +52,7 @@ IWbemServices *initialize_wbem() {
 		(LPVOID *) &pLoc
 	);
 	if (FAILED(hres)) {
-		printf("[!] Failed to create IWbemLocator: 0x%08x\n", hres);
+		printf("[!] Failed to create IWbemLocator: 0x%08lx\n", hres);
 		CoUninitialize();
 		return NULL;
 	}
@@ -62,7 +62,7 @@ IWbemServices *initialize_wbem() {
 	SysFreeString(tempBstr);
 	
 	if (FAILED(hres)) {
-		printf("[!] Failed to connect to CIMV2 WMI namespace: 0x%08x\n", hres);
+		printf("[!] Failed to connect to CIMV2 WMI namespace: 0x%08lx\n", hres);
 		pLoc->Release();
 		CoUninitialize();
 		return NULL;
@@ -73,7 +73,7 @@ IWbemServices *initialize_wbem() {
 		RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE
 	);
 	if (FAILED(hres)) {
-		printf("[!] Failed to set Proxy Blanket: 0x%08x\n", hres);
+		printf("[!] Failed to set Proxy Blanket: 0x%08lx\n", hres);
 		pSvc->Release();
 		pLoc->Release();     
 		CoUninitialize();
@@ -85,19 +85,14 @@ IWbemServices *initialize_wbem() {
 	return pSvc;
 }
 
-
+void iter_keys(IEnumWbemClassObject *, int);
 void execute_query(int idx) {
 	static const BSTR wqlStr = SysAllocString(L"WQL");
 	static const long flags = WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY;
 	int i;
-	ULONG uReturn, returns;
-	HRESULT hres;
 	wchar_t queryStrBuilder[QUERY_LEN] = L"select ";
-	BSTR queryStr, keyStr;
+	BSTR queryStr;
 	IEnumWbemClassObject *pEnum = NULL;
-	IWbemClassObject *pWbemObj = NULL;
-	VARIANT vt;
-	CIMTYPE cimType;
 
 	for (i=1; i<NAME_LEN; i++) {
 		if (*queries[idx][i] == L'\0') break;
@@ -111,7 +106,24 @@ void execute_query(int idx) {
 	printf("\n\n[*] Query: %S\n", queryStr);
 
 
-	hres = pSvc->ExecQuery(wqlStr, queryStr, flags, NULL, &pEnum);
+	pSvc->ExecQuery(wqlStr, queryStr, flags, NULL, &pEnum);
+
+	iter_keys(pEnum, idx);
+
+	pEnum->Release();
+
+	return;
+}
+
+
+void iter_keys(IEnumWbemClassObject *pEnum, int idx) {
+	int i;
+	HRESULT hres;
+	ULONG uReturn, returns;
+	BSTR keyStr;
+	IWbemClassObject *pWbemObj;
+	VARIANT v;
+	CIMTYPE cimType;
 
 	returns = 0;
 	while (1) {
@@ -124,26 +136,25 @@ void execute_query(int idx) {
 			if (*queries[idx][i] == L'\0') break;
 			keyStr = SysAllocString(queries[idx][i]);
 
-			VariantInit(&vt);
-			hres = pWbemObj->Get(keyStr, 0, &vt, &cimType, NULL);
+			VariantInit(&v);
+			hres = pWbemObj->Get(keyStr, 0, &v, &cimType, NULL);
 
 			if (FAILED(hres)) {
-				printf("[!] Failed to retrieve key %S: 0x%08x\n", keyStr, hres);
+				printf("[!] Failed to retrieve key %S: 0x%08lx\n", keyStr, hres);
 				continue;
 			}
 
-			printf("[*] cimType: %d, vt: %d\n", cimType, vt.vt);
-			if (vt.vt == VT_BSTR || cimType == CIM_STRING) {
-				printf("[*] %S : %S\n", keyStr, vt.bstrVal);
+			printf("[*] cimType: %ld, vt: %d\n", cimType, v.vt);
+			if (v.vt == VT_BSTR || cimType == CIM_STRING) {
+				printf("[*] %S : %S\n", keyStr, v.bstrVal);
 			} else {
-				printf("[*] %S : not string. Type: %d\n", keyStr, cimType);
+				printf("[*] %S : not string. Type: %ld\n", keyStr, cimType);
 			}
 
-			VariantClear(&vt);
+			VariantClear(&v);
 		}
 		pWbemObj->Release();
 	}
-	pEnum->Release();
 
 	return;
 }
