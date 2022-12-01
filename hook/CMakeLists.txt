@@ -6,10 +6,10 @@ else()
 	cmake_policy(VERSION 3.24)
 endif()
 
-project(CeVIO_AI_DllHook VERSION 1.0 LANGUAGES C)
+project(CeVIO_AI_DllHook VERSION 1.0 LANGUAGES C CXX)
 
 set(CMAKE_SHARED_LIBRARY_PREFIX "")
-add_library(hook SHARED src/dllmain.c src/dllmain.def src/misc.c src/debug.c src/hooks.c src/wmi/wminet.c)
+add_library(hook SHARED src/dllmain.c src/dllmain.def src/misc.c src/debug.c src/hooks.c src/wmi/wminet.cpp src/wmi/com/wbem.cpp)
 
 set_target_properties(hook PROPERTIES OUTPUT_NAME imm32)
 

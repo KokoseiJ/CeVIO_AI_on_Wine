@@ -1,4 +1,4 @@
-#include "wminet.h"
+#include "wminet.hpp"
 
 HRESULT (*orig_ExecQueryWmi)(const BSTR, const BSTR, int, IWbemContext *, IEnumWbemClassObject **, int, int, IWbemServices *, const BSTR, int *, const BSTR) = NULL;
 
@@ -21,8 +21,12 @@ HRESULT hook_ExecQueryWmi(
 		"Called. lang: %S | query: %S | flags: %#010x | implevel: %d | authnlevel: %d",
 		strQueryLanguage, strQuery, lFlags, impLevel, authnLevel);
 
-	return orig_ExecQueryWmi(strQueryLanguage, strQuery, lFlags, pCtx, ppEnum, impLevel, authnLevel,
-				 pCurrentNamespace, strUser, strPassword, strAuthority);
+	new(*ppEnum) CeVIOEnumWbemClassObject();
+
+	return S_OK;
+
+	//return orig_ExecQueryWmi(strQueryLanguage, strQuery, lFlags, pCtx, ppEnum, impLevel, authnLevel,
+	//			 pCurrentNamespace, strUser, strPassword, strAuthority);
 }
 
 int init_wminet() {
