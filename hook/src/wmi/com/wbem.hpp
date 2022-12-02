@@ -1,7 +1,15 @@
 #ifndef INCL_HOOK_WBEM_HPP
 #define INCL_HOOK_WBEM_HPP
 
+#ifdef __MINGW32__
+#include <initguid.h>
+#else
+#pragma comment(lib, "wbemuuid.lib")
+#endif
+
+extern "C" {
 #include "../../debug.h"
+}
 #include <wbemcli.h>
 #include <windows.h>
 #include <inttypes.h>

@@ -1,14 +1,19 @@
 #ifndef INCL_WMINET_HPP
 #define INCL_WMINET_HPP
 
-#include "wminet_c.h"
+//#include "wminet_c.h"
 #include "com/wbem.hpp"
-#include "../debug.h"
+extern "C" {
+    #include "../debug.h"
+}
 #include <MinHook.h>
 #include <wbemcli.h>
 #include <windows.h>
+#include <new>
 
 #pragma comment(lib, "wbemuuid.lib")
+
+extern "C" int init_wminet();
 
 #endif
 
