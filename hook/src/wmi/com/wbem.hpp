@@ -13,16 +13,23 @@ private:
 	uint32_t refcount = 0;
 public:
 	CeVIOUnknown();
+
 	ULONG AddRef();
 	HRESULT QueryInterface(REFIID riid, void **ppvObject);
 	ULONG Release();
 };
 
-class CeVIOEnumWbemClassObject : \public IEnumWbemClassObject, public CeVIOUnknown {
+class CeVIOEnumWbemClassObject : public IEnumWbemClassObject {
 private:
 	const static char classname[];
+	uint32_t refcount = 0;
 public:
 	CeVIOEnumWbemClassObject();
+
+	ULONG AddRef();
+	HRESULT QueryInterface(REFIID riid, void **ppvObject);
+	ULONG Release();
+
 	HRESULT Clone(IEnumWbemClassObject **ppEnum);
 	HRESULT Next(long lTimeout, ULONG uCount, IWbemClassObject **apObjects, ULONG *puReturned);
 	HRESULT NextAsync(ULONG uCount, IWbemObjectSink *pSink);
@@ -30,12 +37,17 @@ public:
 	HRESULT Skip(long lTimeout, ULONG nCount);
 };
 
-class CeVIOWbemClassObject : public IWbemClassObject, public CeVIOUnknown
-{
+class CeVIOWbemClassObject : public IWbemClassObject {
 private:
 	const static char classname[];
+	uint32_t refcount = 0;
 public:
 	CeVIOWbemClassObject();
+
+	ULONG AddRef();
+	HRESULT QueryInterface(REFIID riid, void **ppvObject);
+	ULONG Release();
+
 	HRESULT GetQualifierSet(IWbemQualifierSet **ppQualSet);
 	HRESULT Get(LPCWSTR wszName, long lFlags, VARIANT *pVal, CIMTYPE *pType, long *plFlavor);
 	HRESULT Put(LPCWSTR wszName, long lFlags, VARIANT *pVal, CIMTYPE Type);
