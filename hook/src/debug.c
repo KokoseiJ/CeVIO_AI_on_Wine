@@ -4,7 +4,7 @@ HANDLE hConsole = NULL;
 char *window_title = "CeVIO AI on Wine";
 
 
-DWORD debug_print(char *string) {
+DWORD debug_print(const char *string) {
 #ifdef DEBUG
 	size_t string_length;
 	DWORD written_chars = 0;
@@ -22,7 +22,7 @@ DWORD debug_print(char *string) {
 #endif
 }
 
-DWORD debug_printf(char *fmt, ...) {
+DWORD debug_printf(const char *fmt, ...) {
 #ifdef DEBUG
 	char buffer[1024];
 	va_list args;
@@ -39,7 +39,7 @@ DWORD debug_printf(char *fmt, ...) {
 #endif
 }
 
-DWORD debug_info(char *funcname, char *fmt, ...){
+DWORD debug_info(const char *funcname, const char *fmt, ...){
 #ifdef DEBUG
 	char msgBuffer[1024], buffer[1024];
 	va_list args;
@@ -59,7 +59,7 @@ DWORD debug_info(char *funcname, char *fmt, ...){
 #endif
 }
 
-DWORD debug_error(char *funcname, char *fmt, ...) {
+DWORD debug_error(const char *funcname, const char *fmt, ...) {
 #ifdef DEBUG
 	char msgBuffer[1024], buffer[1024];
 	va_list args;
@@ -92,12 +92,12 @@ int init_console() {
 }
 
 
-int info_message(char *content) {
+int info_message(const char *content) {
 	debug_info("info_message", content);
 	return MessageBoxA(NULL, content, window_title, MB_OK | MB_ICONINFORMATION);
 }
 
-int error_message(char *content) {
+int error_message(const char *content) {
 	debug_error("error_message", content);
 	return MessageBoxA(NULL, content, window_title, MB_OK | MB_ICONERROR);
 }
