@@ -14,6 +14,7 @@ add_library(hook SHARED src/dllmain.c src/dllmain.def src/misc.c src/debug.c src
 set_target_properties(hook PROPERTIES OUTPUT_NAME imm32)
 
 target_link_libraries(hook minhook)
+target_link_options(hook PRIVATE -static)
 
 if (MINGW)
 	set(DIST_FOLDER ${CMAKE_BINARY_DIR}/dist/hook)
