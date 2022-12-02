@@ -46,7 +46,10 @@ int init_wminet() {
 		return 1;
 	}
 
-	if (MH_CreateHook(ptr_ExecQueryWmi, &hook_ExecQueryWmi, &orig_ExecQueryWmi) != MH_OK) {
+	if (MH_CreateHook(
+			reinterpret_cast<LPVOID*>(ptr_ExecQueryWmi),
+			reinterpret_cast<LPVOID*>(&hook_ExecQueryWmi),
+			reinterpret_cast<LPVOID*>(&orig_ExecQueryWmi)) != MH_OK) {
 		error_message("Failed to create ExecQueryWmi hook!");
 		return 1;
 	}
