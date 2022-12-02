@@ -90,6 +90,7 @@ void execute_query(int idx) {
 	static const BSTR wqlStr = SysAllocString(L"WQL");
 	static const long flags = WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY;
 	int i;
+	HRESULT hres;
 	wchar_t queryStrBuilder[QUERY_LEN] = L"select ";
 	BSTR queryStr;
 	IEnumWbemClassObject *pEnum = NULL;
@@ -106,7 +107,11 @@ void execute_query(int idx) {
 	printf("\n\n[*] Query: %S\n", queryStr);
 
 
-	pSvc->ExecQuery(wqlStr, queryStr, flags, NULL, &pEnum);
+	hres = pSvc->ExecQuery(wqlStr, queryStr, flags, NULL, &pEnum);
+	if (FAILED(hres)) {
+		printf("[!] Failed to query: 0x%08lx\n", hres);
+		return;
+	}
 
 	iter_keys(pEnum, idx);
 
@@ -162,6 +167,7 @@ void iter_keys(IEnumWbemClassObject *pEnum, int idx) {
 
 int main() {
 	int i = 0;
+	Config *config = NULL;
 
 	initialize_wbem();
 	if (pSvc == NULL) {
