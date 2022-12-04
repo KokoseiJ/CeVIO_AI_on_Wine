@@ -4,7 +4,10 @@
 #pragma comment(lib, "wbemuuid.lib")
 #endif
 
+extern "C" {
 #include <kcnf/kcnf.h>
+#include <kcnf/base64.h>
+}
 #include <wbemcli.h>
 #include <windows.h>
 #include <stdio.h>
@@ -129,8 +132,13 @@ void iter_keys(IEnumWbemClassObject *pEnum, int idx) {
 	int i;
 	HRESULT hres;
 	ULONG uReturn, returns;
+
 	wchar_t keyWstr[NAME_STR_LEN];
 	BSTR keyStr;
+
+	size_t b64inlen, b64outlen;
+	char *b64out;
+
 	IWbemClassObject *pWbemObj;
 	VARIANT v;
 	CIMTYPE cimType;
@@ -161,6 +169,12 @@ void iter_keys(IEnumWbemClassObject *pEnum, int idx) {
 			} else {
 				printf("[*] %S : not string. Type: %ld\n", keyStr, cimType);
 			}
+
+			b64inlen = sizeof(VARIANT);
+			b64outlen = b64enclen(b64inlen);
+			b64out = (char *) calloc(b64outlen, sizeof(char));
+			b64encode(&v, b64inlen, b64out, b64outlen);
+			printf("V: %s\n", b64out);
 
 			VariantClear(&v);
 		}
