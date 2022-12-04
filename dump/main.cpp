@@ -16,13 +16,13 @@
 
 IWbemServices *pSvc = NULL;
 
-wchar_t queries[][NAME_LEN][NAME_STR_LEN] {
-	{L"Win32_OperatingSystem", L"Caption", L"CSDVersion", L"Version"},
-	{L"Win32_OperatingSystem", L"TotalVisibleMemorySize", L"FreePhysicalMemory"},
-	{L"Win32_Processor", L"Name", L"CurrentClockSpeed"},
-	{L"Win32_VideoController", L"Caption", L"DriverVersion"},
-	{L"Win32_SoundDevice", L"Caption"},
-	{L"Win32_NetworkAdapter", L"Name", L"NetConnectionID", L"AdapterType", L"PhysicalAdapter", L"NetEnabled"}
+char queries[][NAME_LEN][NAME_STR_LEN] {
+	{"Win32_OperatingSystem", "Caption", "CSDVersion", "Version"},
+	{"Win32_OperatingSystem", "TotalVisibleMemorySize", "FreePhysicalMemory"},
+	{"Win32_Processor", "Name", "CurrentClockSpeed"},
+	{"Win32_VideoController", "Caption", "DriverVersion"},
+	{"Win32_SoundDevice", "Caption"},
+	{"Win32_NetworkAdapter", "Name", "NetConnectionID", "AdapterType", "PhysicalAdapter", "NetEnabled"}
 };
 
 
@@ -89,23 +89,27 @@ void iter_keys(IEnumWbemClassObject *, int);
 void execute_query(int idx) {
 	static const BSTR wqlStr = SysAllocString(L"WQL");
 	static const long flags = WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY;
+
 	int i;
 	HRESULT hres;
-	wchar_t queryStrBuilder[QUERY_LEN] = L"select ";
+	char queryStrBuilder[QUERY_LEN] = "select ";
+	wchar_t queryWstr[QUERY_LEN];
 	BSTR queryStr;
+
 	IEnumWbemClassObject *pEnum = NULL;
 
 	for (i=1; i<NAME_LEN; i++) {
-		if (*queries[idx][i] == L'\0') break;
-		if (i != 1) wcscat(queryStrBuilder, L", ");
-		wcscat(queryStrBuilder, queries[idx][i]);
+		if (*queries[idx][i] == '\0') break;
+		if (i != 1) strcat(queryStrBuilder, ", ");
+		strcat(queryStrBuilder, queries[idx][i]);
 	}
-	wcscat(queryStrBuilder, L" from ");
-	wcscat(queryStrBuilder, queries[idx][0]);
+	strcat(queryStrBuilder, " from ");
+	strcat(queryStrBuilder, queries[idx][0]);
 
-	queryStr = SysAllocString(queryStrBuilder);
-	printf("\n\n[*] Query: %S\n", queryStr);
+	mbstowcs(queryWstr, queryStrBuilder, QUERY_LEN);
 
+	queryStr = SysAllocString(queryWstr);
+	printf("\n\n[*] Query: %S\n", queryWstr);
 
 	hres = pSvc->ExecQuery(wqlStr, queryStr, flags, NULL, &pEnum);
 	if (FAILED(hres)) {
@@ -125,6 +129,7 @@ void iter_keys(IEnumWbemClassObject *pEnum, int idx) {
 	int i;
 	HRESULT hres;
 	ULONG uReturn, returns;
+	wchar_t keyWstr[NAME_STR_LEN];
 	BSTR keyStr;
 	IWbemClassObject *pWbemObj;
 	VARIANT v;
@@ -139,7 +144,8 @@ void iter_keys(IEnumWbemClassObject *pEnum, int idx) {
 
 		for (i=1; i<NAME_LEN; i++) {
 			if (*queries[idx][i] == L'\0') break;
-			keyStr = SysAllocString(queries[idx][i]);
+			mbstowcs(keyWstr, queries[idx][i], NAME_STR_LEN);
+			keyStr = SysAllocString(keyWstr);
 
 			VariantInit(&v);
 			hres = pWbemObj->Get(keyStr, 0, &v, &cimType, NULL);
