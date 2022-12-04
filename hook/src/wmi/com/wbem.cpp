@@ -28,6 +28,8 @@ CeVIOWbemClassObject::CeVIOWbemClassObject() {
 }
 
 
+// CeVIOUnknown Implementation
+
 ULONG CeVIOUnknown::AddRef() {
 	char funcname[64] = "AddRef";
 	init_funcname(this->classname, funcname);
@@ -68,6 +70,8 @@ ULONG CeVIOUnknown::Release() {
 }
 
 
+// CeVIOEnumWbemClassObject Implementation
+
 ULONG CeVIOEnumWbemClassObject::AddRef() {
 	char funcname[64] = "AddRef";
 	init_funcname(this->classname, funcname);
@@ -88,6 +92,7 @@ HRESULT CeVIOEnumWbemClassObject::QueryInterface(REFIID riid, void **ppvObject) 
 	*ppvObject = NULL;
 
 	if (riid == IID_IUnknown || riid == IID_IEnumWbemClassObject) {
+	//if (true) {
 		debug_info(funcname, "IID matched.");
 		*ppvObject = this;
 		AddRef();
@@ -111,15 +116,21 @@ HRESULT CeVIOEnumWbemClassObject::Clone(IEnumWbemClassObject **ppEnum) {
 	char funcname[64] = "Clone";
 	init_funcname(this->classname, funcname);
 
-	debug_error(funcname, "Not Implemented.");
-	return E_NOTIMPL;
+	debug_error(funcname, "FIXME: Stub.");
+
+	*ppEnum = new CeVIOEnumWbemClassObject();
+	return S_OK;
 }
 HRESULT CeVIOEnumWbemClassObject::Next(long lTimeout, ULONG uCount, IWbemClassObject **apObjects, ULONG *puReturned) {
 	char funcname[64] = "Next";
 	init_funcname(this->classname, funcname);
 
-	debug_error(funcname, "Not Implemented.");
-	return E_NOTIMPL;
+	debug_error(funcname, "FIXME: Stub. lTimeout: %ld, uCount: %ld, apObjects: %p", lTimeout, uCount, apObjects);
+
+	apObjects[0] = new CeVIOWbemClassObject();
+	*puReturned = 1;
+
+	return WBEM_S_NO_ERROR;
 }
 
 HRESULT CeVIOEnumWbemClassObject::NextAsync(ULONG uCount, IWbemObjectSink *pSink) {
@@ -134,8 +145,8 @@ HRESULT CeVIOEnumWbemClassObject::Reset() {
 	char funcname[64] = "Reset";
 	init_funcname(this->classname, funcname);
 
-	debug_error(funcname, "Not Implemented.");
-	return E_NOTIMPL;
+	debug_error(funcname, "FIXME: Stub. Returning WBEM_S_NO_ERROR");
+	return WBEM_S_NO_ERROR;
 }
 
 HRESULT CeVIOEnumWbemClassObject::Skip(long lTimeout, ULONG nCount) {
@@ -146,6 +157,8 @@ HRESULT CeVIOEnumWbemClassObject::Skip(long lTimeout, ULONG nCount) {
 	return E_NOTIMPL;
 }
 
+
+// CeVIOWbemClassObject Implementation
 
 ULONG CeVIOWbemClassObject::AddRef() {
 	char funcname[64] = "AddRef";
@@ -158,6 +171,8 @@ ULONG CeVIOWbemClassObject::AddRef() {
 
 HRESULT CeVIOWbemClassObject::QueryInterface(REFIID riid, void **ppvObject) {
 	char funcname[64] = "QueryInterface";
+	OLECHAR *guidString;
+
 	init_funcname(this->classname, funcname);
 
 	debug_info(funcname, "Called.");
@@ -166,7 +181,11 @@ HRESULT CeVIOWbemClassObject::QueryInterface(REFIID riid, void **ppvObject) {
 
 	*ppvObject = NULL;
 
+	StringFromCLSID(riid, &guidString);
+	debug_info(funcname, "riid: %S", guidString);
+
 	if (riid == IID_IUnknown || riid == IID_IWbemClassObject) {
+	//if (true) {
 		debug_info(funcname, "IID matched.");
 		*ppvObject = this;
 		AddRef();
@@ -198,7 +217,7 @@ HRESULT CeVIOWbemClassObject::Get(LPCWSTR wszName, long lFlags, VARIANT *pVal, C
 	char funcname[64] = "Get";
 	init_funcname(this->classname, funcname);
 
-	debug_error(funcname, "Not Implemented.");
+	debug_error(funcname, "Not Implemented. wszname: %S | lFlags: %ld", wszName, lFlags);
 	return E_NOTIMPL;
 }
 

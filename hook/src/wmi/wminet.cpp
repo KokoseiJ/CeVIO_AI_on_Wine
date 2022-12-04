@@ -46,7 +46,7 @@ HRESULT hook_CloneEnumWbemClassObject (
 
 	//return orig_CloneEnumWbemClassObject(ppEnum, authLevel, impLevel, pCurrentEnumWbemClassObject,
 	//	strUser, strPassword, strAuthority);
-	return E_NOTIMPL;
+	return pCurrentEnumWbemClassObject->Clone(ppEnum);
 }
 
 
@@ -81,7 +81,6 @@ int init_wminet() {
 		return 1;
 	}
 
-	/*
 	if (MH_CreateHook(
 			reinterpret_cast<LPVOID*>(ptr_CloneEnumWbemClassObject),
 			reinterpret_cast<LPVOID*>(&hook_CloneEnumWbemClassObject),
@@ -89,7 +88,6 @@ int init_wminet() {
 		error_message("Failed to create CloneEnumWbemClassObject hook!");
 		return 1;
 	}
-	*/
 
 	return 0;
 }
