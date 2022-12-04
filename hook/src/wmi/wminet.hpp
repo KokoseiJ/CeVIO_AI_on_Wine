@@ -1,7 +1,12 @@
 #ifndef INCL_WMINET_HPP
 #define INCL_WMINET_HPP
 
-//#include "wminet_c.h"
+#ifdef __MINGW32__
+#include <initguid.h>
+#else
+#pragma comment(lib, "wbemuuid.lib")
+#endif
+
 #include "com/wbem.hpp"
 extern "C" {
     #include "../debug.h"
@@ -11,9 +16,6 @@ extern "C" {
 #include <windows.h>
 #include <new>
 
-#pragma comment(lib, "wbemuuid.lib")
-
 extern "C" int init_wminet();
 
 #endif
-
