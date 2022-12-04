@@ -10,6 +10,7 @@ project(CeVIO_AI_On_Wine VERSION 1.0 LANGUAGES C)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_definitions(DEBUG)
+    add_compile_options(-g)
 endif()
 
 if (MINGW)
