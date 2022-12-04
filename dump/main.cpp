@@ -164,17 +164,27 @@ void iter_keys(IEnumWbemClassObject *pEnum, int idx) {
 			}
 
 			printf("[*] cimType: %ld, vt: %d\n", cimType, v.vt);
-			if (v.vt == VT_BSTR || cimType == CIM_STRING) {
+
+			switch (cimType) {
+			case CIM_STRING:
+			case CIM_UINT64:
 				printf("[*] %S : %S\n", keyStr, v.bstrVal);
-			} else {
-				printf("[*] %S : not string. Type: %ld\n", keyStr, cimType);
+				break;
+			case CIM_UINT32:
+				printf("[*] %S: %u\n", keyStr, v.uintVal);
+				break;
+			case CIM_BOOLEAN:
+				printf("[*] %S : %s\n", keyStr, v.boolVal ? "true" : "false");
+				break;
+			default:
+				printf("[*] %S : Unknown Type. Type: %ld\n", keyStr, cimType);
 			}
 
 			b64inlen = sizeof(VARIANT);
 			b64outlen = b64enclen(b64inlen);
 			b64out = (char *) calloc(b64outlen, sizeof(char));
 			b64encode(&v, b64inlen, b64out, b64outlen);
-			printf("V: %s\n", b64out);
+			printf("[*] V: %s\n", b64out);
 
 			VariantClear(&v);
 		}
