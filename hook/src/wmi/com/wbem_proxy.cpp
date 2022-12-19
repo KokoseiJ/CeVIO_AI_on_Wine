@@ -4,7 +4,7 @@ const char CeVIOProxyEnumWbemClassObject::classname[] = "CeVIOProxyEnumWbemClass
 const char CeVIOProxyWbemClassObject::classname[] = "CeVIOProxyWbemClassObject";
 
 
-void init_funcname(const char *classname, char *funcname) {
+void init_funcname_proxy(const char *classname, char *funcname) {
 	char newbuf[64];
 	strcpy(newbuf, funcname);
 	strcpy(funcname, classname);
@@ -37,7 +37,7 @@ CeVIOProxyEnumWbemClassObject::CeVIOProxyEnumWbemClassObject(IEnumWbemClassObjec
 
 ULONG CeVIOProxyEnumWbemClassObject::AddRef() {
 	char funcname[64] = "AddRef";
-	init_funcname(this->classname, funcname);
+	init_funcname_proxy(this->classname, funcname);
 
 	this->refcount++;
 	debug_info(funcname, "Called. refcount: %lu", this->refcount);
@@ -46,7 +46,7 @@ ULONG CeVIOProxyEnumWbemClassObject::AddRef() {
 
 HRESULT CeVIOProxyEnumWbemClassObject::QueryInterface(REFIID riid, void **ppvObject) {
 	char funcname[64] = "QueryInterface";
-	init_funcname(this->classname, funcname);
+	init_funcname_proxy(this->classname, funcname);
 
 	debug_info(funcname, "Called.");
 
@@ -68,7 +68,7 @@ HRESULT CeVIOProxyEnumWbemClassObject::QueryInterface(REFIID riid, void **ppvObj
 
 ULONG CeVIOProxyEnumWbemClassObject::Release() {
 	char funcname[64] = "Release";
-	init_funcname(this->classname, funcname);
+	init_funcname_proxy(this->classname, funcname);
 
 	this->refcount--;
 	debug_info(funcname, "Called. refcount: %lu", this->refcount);
@@ -83,7 +83,7 @@ ULONG CeVIOProxyEnumWbemClassObject::Release() {
 
 HRESULT CeVIOProxyEnumWbemClassObject::Clone(IEnumWbemClassObject **ppEnum) {
 	char funcname[64] = "Clone";
-	init_funcname(this->classname, funcname);
+	init_funcname_proxy(this->classname, funcname);
 
 	HRESULT hres;
 	IEnumWbemClassObject *pEnumNew = NULL;
@@ -102,7 +102,7 @@ HRESULT CeVIOProxyEnumWbemClassObject::Clone(IEnumWbemClassObject **ppEnum) {
 
 HRESULT CeVIOProxyEnumWbemClassObject::Next(long lTimeout, ULONG uCount, IWbemClassObject **apObjects, ULONG *puReturned) {
 	char funcname[64] = "Next";
-	init_funcname(this->classname, funcname);
+	init_funcname_proxy(this->classname, funcname);
 
 	HRESULT hres;
 	IWbemClassObject *wbemClassObj = NULL;
@@ -116,7 +116,7 @@ HRESULT CeVIOProxyEnumWbemClassObject::Next(long lTimeout, ULONG uCount, IWbemCl
 		hres = this->pEnum->Next(lTimeout, 1, &wbemClassObj, &returned);
 		apObjects[*puReturned] = new CeVIOProxyWbemClassObject(wbemClassObj);
 		if (hres == -1) // Stub: End of iteration
-			break
+			break;
 	}
 
 	return hres;
@@ -124,7 +124,7 @@ HRESULT CeVIOProxyEnumWbemClassObject::Next(long lTimeout, ULONG uCount, IWbemCl
 
 HRESULT CeVIOProxyEnumWbemClassObject::NextAsync(ULONG uCount, IWbemObjectSink *pSink) {
 	char funcname[64] = "NextAsync";
-	init_funcname(this->classname, funcname);
+	init_funcname_proxy(this->classname, funcname);
 
 	debug_error(funcname, "Not Implemented.");
 	return E_NOTIMPL;
@@ -132,7 +132,7 @@ HRESULT CeVIOProxyEnumWbemClassObject::NextAsync(ULONG uCount, IWbemObjectSink *
 
 HRESULT CeVIOProxyEnumWbemClassObject::Reset() {
 	char funcname[64] = "Reset";
-	init_funcname(this->classname, funcname);
+	init_funcname_proxy(this->classname, funcname);
 
 	debug_info(funcname, "Called. Proxying source Reset() method...");
 
@@ -141,11 +141,11 @@ HRESULT CeVIOProxyEnumWbemClassObject::Reset() {
 
 HRESULT CeVIOProxyEnumWbemClassObject::Skip(long lTimeout, ULONG nCount) {
 	char funcname[64] = "Skip";
-	init_funcname(this->classname, funcname);
+	init_funcname_proxy(this->classname, funcname);
 
 	debug_info(funcname, "Called. Proxying source Skip() method...");
 	
-	return this->pEnum->Skip();
+	return this->pEnum->Skip(lTimeout, nCount);
 }
 
 
@@ -158,7 +158,7 @@ CeVIOProxyWbemClassObject::CeVIOProxyWbemClassObject(IWbemClassObject *pWbemClas
 
 ULONG CeVIOProxyWbemClassObject::AddRef() {
 	char funcname[64] = "AddRef";
-	init_funcname(this->classname, funcname);
+	init_funcname_proxy(this->classname, funcname);
 
 	this->refcount++;
 	debug_info(funcname, "Called. refcount: %lu", this->refcount);
@@ -169,7 +169,7 @@ HRESULT CeVIOProxyWbemClassObject::QueryInterface(REFIID riid, void **ppvObject)
 	char funcname[64] = "QueryInterface";
 	OLECHAR *guidString;
 
-	init_funcname(this->classname, funcname);
+	init_funcname_proxy(this->classname, funcname);
 
 	debug_info(funcname, "Called.");
 
@@ -194,7 +194,7 @@ HRESULT CeVIOProxyWbemClassObject::QueryInterface(REFIID riid, void **ppvObject)
 
 ULONG CeVIOProxyWbemClassObject::Release() {
 	char funcname[64] = "Release";
-	init_funcname(this->classname, funcname);
+	init_funcname_proxy(this->classname, funcname);
 
 	this->refcount--;
 	debug_info(funcname, "Called. refcount: %lu", this->refcount);
@@ -209,7 +209,7 @@ ULONG CeVIOProxyWbemClassObject::Release() {
 
 HRESULT CeVIOProxyWbemClassObject::GetQualifierSet(IWbemQualifierSet **ppQualSet) {
 	char funcname[64] = "GetQualifierSet";
-	init_funcname(this->classname, funcname);
+	init_funcname_proxy(this->classname, funcname);
 
 	debug_error(funcname, "Not Implemented.");
 	return E_NOTIMPL;
@@ -217,7 +217,7 @@ HRESULT CeVIOProxyWbemClassObject::GetQualifierSet(IWbemQualifierSet **ppQualSet
 
 HRESULT CeVIOProxyWbemClassObject::Get(LPCWSTR wszName, long lFlags, VARIANT *pVal, CIMTYPE *pType, long *plFlavor) {
 	char funcname[64] = "Get";
-	init_funcname(this->classname, funcname);
+	init_funcname_proxy(this->classname, funcname);
 
 	HRESULT hres;
 
@@ -226,8 +226,8 @@ HRESULT CeVIOProxyWbemClassObject::Get(LPCWSTR wszName, long lFlags, VARIANT *pV
 	hres = this->pWbemClassObj->Get(wszName, lFlags, pVal, pType, plFlavor);
 
 	if (FAILED(hres)) {
-		debug_error(funcname, "Failed to retrieve key %S: 0x%08lx. ", wszName, hres)
-		return hres
+		debug_error(funcname, "Failed to retrieve key %S: 0x%08lx. ", wszName, hres);
+		return hres;
 	}
 
 	return S_OK;
@@ -235,7 +235,7 @@ HRESULT CeVIOProxyWbemClassObject::Get(LPCWSTR wszName, long lFlags, VARIANT *pV
 
 HRESULT CeVIOProxyWbemClassObject::Put(LPCWSTR wszName, long lFlags, VARIANT *pVal, CIMTYPE Type) {
 	char funcname[64] = "Put";
-	init_funcname(this->classname, funcname);
+	init_funcname_proxy(this->classname, funcname);
 
 	debug_error(funcname, "Not Implemented.");
 	return E_NOTIMPL;
@@ -243,7 +243,7 @@ HRESULT CeVIOProxyWbemClassObject::Put(LPCWSTR wszName, long lFlags, VARIANT *pV
 
 HRESULT CeVIOProxyWbemClassObject::Delete(LPCWSTR wszName) {
 	char funcname[64] = "Delete";
-	init_funcname(this->classname, funcname);
+	init_funcname_proxy(this->classname, funcname);
 
 	debug_error(funcname, "Not Implemented.");
 	return E_NOTIMPL;
@@ -251,7 +251,7 @@ HRESULT CeVIOProxyWbemClassObject::Delete(LPCWSTR wszName) {
 
 HRESULT CeVIOProxyWbemClassObject::GetNames(LPCWSTR wszQualifierName, long lFlags, VARIANT *pQualifierVal, SAFEARRAY * *pNames) {
 	char funcname[64] = "GetNames";
-	init_funcname(this->classname, funcname);
+	init_funcname_proxy(this->classname, funcname);
 
 	debug_error(funcname, "Not Implemented.");
 	return E_NOTIMPL;
@@ -259,7 +259,7 @@ HRESULT CeVIOProxyWbemClassObject::GetNames(LPCWSTR wszQualifierName, long lFlag
 
 HRESULT CeVIOProxyWbemClassObject::BeginEnumeration(long lEnumFlags) {
 	char funcname[64] = "BeginEnumeration";
-	init_funcname(this->classname, funcname);
+	init_funcname_proxy(this->classname, funcname);
 
 	debug_error(funcname, "Not Implemented.");
 	return E_NOTIMPL;
@@ -267,7 +267,7 @@ HRESULT CeVIOProxyWbemClassObject::BeginEnumeration(long lEnumFlags) {
 
 HRESULT CeVIOProxyWbemClassObject::Next(long lFlags, BSTR *strName, VARIANT *pVal, CIMTYPE *pType, long *plFlavor) {
 	char funcname[64] = "Next";
-	init_funcname(this->classname, funcname);
+	init_funcname_proxy(this->classname, funcname);
 
 	debug_error(funcname, "Not Implemented.");
 	return E_NOTIMPL;
@@ -275,7 +275,7 @@ HRESULT CeVIOProxyWbemClassObject::Next(long lFlags, BSTR *strName, VARIANT *pVa
 
 HRESULT CeVIOProxyWbemClassObject::EndEnumeration( void) {
 	char funcname[64] = "EndEnumeration";
-	init_funcname(this->classname, funcname);
+	init_funcname_proxy(this->classname, funcname);
 
 	debug_error(funcname, "Not Implemented.");
 	return E_NOTIMPL;
@@ -283,7 +283,7 @@ HRESULT CeVIOProxyWbemClassObject::EndEnumeration( void) {
 
 HRESULT CeVIOProxyWbemClassObject::GetPropertyQualifierSet(LPCWSTR wszProperty, IWbemQualifierSet **ppQualSet) {
 	char funcname[64] = "GetPropertyQualifierSet";
-	init_funcname(this->classname, funcname);
+	init_funcname_proxy(this->classname, funcname);
 
 	debug_error(funcname, "Not Implemented.");
 	return E_NOTIMPL;
@@ -291,7 +291,7 @@ HRESULT CeVIOProxyWbemClassObject::GetPropertyQualifierSet(LPCWSTR wszProperty, 
 ;
 HRESULT CeVIOProxyWbemClassObject::Clone(IWbemClassObject **ppCopy) {
 	char funcname[64] = "Clone";
-	init_funcname(this->classname, funcname);
+	init_funcname_proxy(this->classname, funcname);
 
 	HRESULT hres;
 	IWbemClassObject *pNewWbemClassObj = NULL;
@@ -301,7 +301,7 @@ HRESULT CeVIOProxyWbemClassObject::Clone(IWbemClassObject **ppCopy) {
 	hres = this->pWbemClassObj->Clone(&pNewWbemClassObj);
 
 	if (FAILED(hres)) {
-		debug_error("Failed! hres: 0x%08lx", hres);
+		debug_error(funcname, "Failed! hres: 0x%08lx", hres);
 		return hres;
 	}
 
@@ -311,7 +311,7 @@ HRESULT CeVIOProxyWbemClassObject::Clone(IWbemClassObject **ppCopy) {
 
 HRESULT CeVIOProxyWbemClassObject::GetObjectText(long lFlags, BSTR *pstrObjectText) {
 	char funcname[64] = "GetObjectText";
-	init_funcname(this->classname, funcname);
+	init_funcname_proxy(this->classname, funcname);
 
 	debug_error(funcname, "Not Implemented.");
 	return E_NOTIMPL;
@@ -319,7 +319,7 @@ HRESULT CeVIOProxyWbemClassObject::GetObjectText(long lFlags, BSTR *pstrObjectTe
 
 HRESULT CeVIOProxyWbemClassObject::SpawnDerivedClass(long lFlags, IWbemClassObject **ppNewClass) {
 	char funcname[64] = "SpawnDerivedClass";
-	init_funcname(this->classname, funcname);
+	init_funcname_proxy(this->classname, funcname);
 
 	debug_error(funcname, "Not Implemented.");
 	return E_NOTIMPL;
@@ -327,7 +327,7 @@ HRESULT CeVIOProxyWbemClassObject::SpawnDerivedClass(long lFlags, IWbemClassObje
 
 HRESULT CeVIOProxyWbemClassObject::SpawnInstance(long lFlags, IWbemClassObject **ppNewInstance) {
 	char funcname[64] = "SpawnInstance";
-	init_funcname(this->classname, funcname);
+	init_funcname_proxy(this->classname, funcname);
 
 	debug_error(funcname, "Not Implemented.");
 	return E_NOTIMPL;
@@ -335,7 +335,7 @@ HRESULT CeVIOProxyWbemClassObject::SpawnInstance(long lFlags, IWbemClassObject *
 
 HRESULT CeVIOProxyWbemClassObject::CompareTo(long lFlags, IWbemClassObject *pCompareTo) {
 	char funcname[64] = "CompareTo";
-	init_funcname(this->classname, funcname);
+	init_funcname_proxy(this->classname, funcname);
 
 	debug_error(funcname, "Not Implemented.");
 	return E_NOTIMPL;
@@ -343,7 +343,7 @@ HRESULT CeVIOProxyWbemClassObject::CompareTo(long lFlags, IWbemClassObject *pCom
 
 HRESULT CeVIOProxyWbemClassObject::GetPropertyOrigin(LPCWSTR wszName, BSTR *pstrClassName) {
 	char funcname[64] = "GetPropertyOrigin";
-	init_funcname(this->classname, funcname);
+	init_funcname_proxy(this->classname, funcname);
 
 	debug_error(funcname, "Not Implemented.");
 	return E_NOTIMPL;
@@ -351,7 +351,7 @@ HRESULT CeVIOProxyWbemClassObject::GetPropertyOrigin(LPCWSTR wszName, BSTR *pstr
 
 HRESULT CeVIOProxyWbemClassObject::InheritsFrom(LPCWSTR strAncestor) {
 	char funcname[64] = "InheritsFrom";
-	init_funcname(this->classname, funcname);
+	init_funcname_proxy(this->classname, funcname);
 
 	debug_error(funcname, "Not Implemented.");
 	return E_NOTIMPL;
@@ -359,7 +359,7 @@ HRESULT CeVIOProxyWbemClassObject::InheritsFrom(LPCWSTR strAncestor) {
 
 HRESULT CeVIOProxyWbemClassObject::GetMethod(LPCWSTR wszName, long lFlags, IWbemClassObject **ppInSignature, IWbemClassObject **ppOutSignature) {
 	char funcname[64] = "GetMethod";
-	init_funcname(this->classname, funcname);
+	init_funcname_proxy(this->classname, funcname);
 
 	debug_error(funcname, "Not Implemented.");
 	return E_NOTIMPL;
@@ -367,7 +367,7 @@ HRESULT CeVIOProxyWbemClassObject::GetMethod(LPCWSTR wszName, long lFlags, IWbem
 
 HRESULT CeVIOProxyWbemClassObject::PutMethod(LPCWSTR wszName, long lFlags, IWbemClassObject *pInSignature, IWbemClassObject *pOutSignature) {
 	char funcname[64] = "PutMethod";
-	init_funcname(this->classname, funcname);
+	init_funcname_proxy(this->classname, funcname);
 
 	debug_error(funcname, "Not Implemented.");
 	return E_NOTIMPL;
@@ -375,7 +375,7 @@ HRESULT CeVIOProxyWbemClassObject::PutMethod(LPCWSTR wszName, long lFlags, IWbem
 
 HRESULT CeVIOProxyWbemClassObject::DeleteMethod(LPCWSTR wszName) {
 	char funcname[64] = "DeleteMethod";
-	init_funcname(this->classname, funcname);
+	init_funcname_proxy(this->classname, funcname);
 
 	debug_error(funcname, "Not Implemented.");
 	return E_NOTIMPL;
@@ -383,7 +383,7 @@ HRESULT CeVIOProxyWbemClassObject::DeleteMethod(LPCWSTR wszName) {
 
 HRESULT CeVIOProxyWbemClassObject::BeginMethodEnumeration(long lEnumFlags) {
 	char funcname[64] = "BeginMethodEnumeration";
-	init_funcname(this->classname, funcname);
+	init_funcname_proxy(this->classname, funcname);
 
 	debug_error(funcname, "Not Implemented.");
 	return E_NOTIMPL;
@@ -391,7 +391,7 @@ HRESULT CeVIOProxyWbemClassObject::BeginMethodEnumeration(long lEnumFlags) {
 
 HRESULT CeVIOProxyWbemClassObject::NextMethod(long lFlags, BSTR *pstrName, IWbemClassObject **ppInSignature, IWbemClassObject **ppOutSignature) {
 	char funcname[64] = "NextMethod";
-	init_funcname(this->classname, funcname);
+	init_funcname_proxy(this->classname, funcname);
 
 	debug_error(funcname, "Not Implemented.");
 	return E_NOTIMPL;
@@ -399,7 +399,7 @@ HRESULT CeVIOProxyWbemClassObject::NextMethod(long lFlags, BSTR *pstrName, IWbem
 
 HRESULT CeVIOProxyWbemClassObject::EndMethodEnumeration( void) {
 	char funcname[64] = "EndMethodEnumeration";
-	init_funcname(this->classname, funcname);
+	init_funcname_proxy(this->classname, funcname);
 
 	debug_error(funcname, "Not Implemented.");
 	return E_NOTIMPL;
@@ -407,7 +407,7 @@ HRESULT CeVIOProxyWbemClassObject::EndMethodEnumeration( void) {
 
 HRESULT CeVIOProxyWbemClassObject::GetMethodQualifierSet(LPCWSTR wszMethod, IWbemQualifierSet **ppQualSet) {
 	char funcname[64] = "GetMethodQualifierSet";
-	init_funcname(this->classname, funcname);
+	init_funcname_proxy(this->classname, funcname);
 
 	debug_error(funcname, "Not Implemented.");
 	return E_NOTIMPL;
@@ -415,7 +415,7 @@ HRESULT CeVIOProxyWbemClassObject::GetMethodQualifierSet(LPCWSTR wszMethod, IWbe
 
 HRESULT CeVIOProxyWbemClassObject::GetMethodOrigin(LPCWSTR wszMethodName, BSTR *pstrClassName) {
 	char funcname[64] = "GetMethodOrigin";
-	init_funcname(this->classname, funcname);
+	init_funcname_proxy(this->classname, funcname);
 
 	debug_error(funcname, "Not Implemented.");
 	return E_NOTIMPL;

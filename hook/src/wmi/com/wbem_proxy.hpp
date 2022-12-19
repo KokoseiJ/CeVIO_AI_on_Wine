@@ -46,7 +46,7 @@ private:
 	IWbemClassObject *pWbemClassObj = NULL;
 
 public:
-	CeVIOProxyWbemClassObject();
+	CeVIOProxyWbemClassObject(IWbemClassObject *pWbemClassObj);
 
 	ULONG AddRef();
 	HRESULT QueryInterface(REFIID riid, void **ppvObject);
