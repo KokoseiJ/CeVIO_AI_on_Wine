@@ -8,6 +8,8 @@
 #endif
 
 #include "com/wbem.hpp"
+#include "com/wbem_proxy.hpp"
+#include "com/wbem_client.hpp"
 extern "C" {
     #include "../debug.h"
 }
