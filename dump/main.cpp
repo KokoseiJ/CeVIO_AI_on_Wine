@@ -128,7 +128,7 @@ void execute_query(int idx) {
 }
 
 
-void iter_keys(IEnumWbemClassObject *pEnum, int idx) {
+Config *iter_keys(IEnumWbemClassObject *pEnum, int idx) {
 	int i;
 	HRESULT hres;
 	ULONG uReturn, returns;
@@ -139,6 +139,7 @@ void iter_keys(IEnumWbemClassObject *pEnum, int idx) {
 	size_t b64inlen, b64outlen;
 	char *b64out;
 
+	Config *config = NULL, *child = NULL, *value = NULL;
 	IWbemClassObject *pWbemObj;
 	VARIANT v;
 	CIMTYPE cimType;
@@ -165,10 +166,15 @@ void iter_keys(IEnumWbemClassObject *pEnum, int idx) {
 
 			printf("[*] cimType: %ld, vt: %d\n", cimType, v.vt);
 
+			value = config_value_put(NULL, &cimType, sizeof(CIMTYPE));
+			child = config_pair_put(NULL, "cimtype", value);
+
 			switch (cimType) {
 			case CIM_STRING:
 			case CIM_UINT64:
 				printf("[*] %S : %S\n", keyStr, v.bstrVal);
+				value = config_value_put(NULL, v.bstrVal, (SysStringLen(v.bstrVal) + 1) * sizeof(OLECHAR));
+				child = config_pair_put(child, "bstr", value);
 				break;
 			case CIM_UINT32:
 				printf("[*] %S: %u\n", keyStr, v.uintVal);
@@ -179,12 +185,6 @@ void iter_keys(IEnumWbemClassObject *pEnum, int idx) {
 			default:
 				printf("[*] %S : Unknown Type. Type: %ld\n", keyStr, cimType);
 			}
-
-			b64inlen = sizeof(VARIANT);
-			b64outlen = b64enclen(b64inlen);
-			b64out = (char *) calloc(b64outlen, sizeof(char));
-			b64encode(&v, b64inlen, b64out, b64outlen);
-			printf("[*] V: %s\n", b64out);
 
 			VariantClear(&v);
 		}
