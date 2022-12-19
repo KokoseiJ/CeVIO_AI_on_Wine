@@ -1,5 +1,5 @@
-#ifndef INCL_WMINET_HPP
-#define INCL_WMINET_HPP
+#ifndef INCL_WMI_WMINET_HPP
+#define INCL_WMI_WMINET_HPP
 
 #ifdef __MINGW32__
 #include <initguid.h>

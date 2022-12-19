@@ -1,5 +1,5 @@
-#ifndef INCL_HOOK_WBEM_HPP
-#define INCL_HOOK_WBEM_HPP
+#ifndef INCL_COM_WBEM_HPP
+#define INCL_COM_WBEM_HPP
 
 #ifdef __MINGW32__
 #include <initguid.h>
