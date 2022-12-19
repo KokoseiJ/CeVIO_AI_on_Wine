@@ -48,11 +48,16 @@ HRESULT CeVIOProxyEnumWbemClassObject::QueryInterface(REFIID riid, void **ppvObj
 	char funcname[64] = "QueryInterface";
 	init_funcname_proxy(this->classname, funcname);
 
+	OLECHAR *guidString;
+
 	debug_info(funcname, "Called.");
 
 	if (!ppvObject) return E_INVALIDARG;
 
 	*ppvObject = NULL;
+
+	StringFromCLSID(riid, &guidString);
+	debug_info(funcname, "riid: %S", guidString);
 
 	if (riid == IID_IUnknown || riid == IID_IEnumWbemClassObject) {
 	//if (true) {
@@ -112,12 +117,26 @@ HRESULT CeVIOProxyEnumWbemClassObject::Next(long lTimeout, ULONG uCount, IWbemCl
 				"lTimeout: %ld, uCount: %ld, apObjects: %p",
 				lTimeout, uCount, apObjects);
 
-	for (*puReturned=0; *puReturned < uCount; *puReturned++) {
+	for ((*puReturned)=0; *puReturned < uCount; (*puReturned)++) {
 		hres = this->pEnum->Next(lTimeout, 1, &wbemClassObj, &returned);
-		apObjects[*puReturned] = new CeVIOProxyWbemClassObject(wbemClassObj);
-		if (hres == -1) // Stub: End of iteration
+		debug_info(funcname, "hres: 0x%08lx, puReturned: %ld", hres, *puReturned);
+		if (FAILED(hres)) {
+			debug_error(funcname, "Next() failed.");
 			break;
+		}
+		if (returned != 1) {
+			debug_info(funcname, "returned == 0, iteration ended?");
+			break;
+		}
+
+		apObjects[*puReturned] = new CeVIOProxyWbemClassObject(wbemClassObj);
+		if (hres == -1) { // Stub: End of iteration
+			debug_info(funcname, "End of iteration reached!");
+			break;
+		}
 	}
+
+	debug_info(funcname, "Final hres: 0x%08lx, puReturned: %ld", hres, *puReturned);
 
 	return hres;
 }
@@ -152,6 +171,10 @@ HRESULT CeVIOProxyEnumWbemClassObject::Skip(long lTimeout, ULONG nCount) {
 // CeVIOProxyWbemClassObject Implementation
 
 CeVIOProxyWbemClassObject::CeVIOProxyWbemClassObject(IWbemClassObject *pWbemClassObj) {
+	if (pWbemClassObj == NULL) {
+		debug_error(this->classname, "pWbemClassObj is NULL!");
+	}
+
 	this->pWbemClassObj = pWbemClassObj;
 	debug_info(this->classname, "Initialized. pWbemClassObj: %p", pWbemClassObj);
 }
@@ -230,7 +253,7 @@ HRESULT CeVIOProxyWbemClassObject::Get(LPCWSTR wszName, long lFlags, VARIANT *pV
 		return hres;
 	}
 
-	return S_OK;
+	return hres;
 }
 
 HRESULT CeVIOProxyWbemClassObject::Put(LPCWSTR wszName, long lFlags, VARIANT *pVal, CIMTYPE Type) {
