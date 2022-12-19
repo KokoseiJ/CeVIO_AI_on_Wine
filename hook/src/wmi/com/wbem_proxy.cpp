@@ -25,14 +25,17 @@ CeVIOProxyEnumWbemClassObject::CeVIOProxyEnumWbemClassObject(BSTR query) {
 	this->pEnum = pEnum;
 
 	debug_info(this->classname, "Initialized. pEnum: %p", pEnum);
-	debug_error(this->classname, "Semi-Stub: Add destructor for freeing pEnum!");
 }
 
 CeVIOProxyEnumWbemClassObject::CeVIOProxyEnumWbemClassObject(IEnumWbemClassObject *pEnum) {
 	this->pEnum = pEnum;
 
 	debug_info(this->classname, "Initialized. pEnum: %p", pEnum);
-	debug_error(this->classname, "Semi-Stub: Add destructor for freeing pEnum!");
+}
+
+CeVIOProxyEnumWbemClassObject::~CeVIOProxyEnumWbemClassObject() {
+	this->pEnum->Release();
+	debug_info(this->classname, "Released pEnum.");
 }
 
 ULONG CeVIOProxyEnumWbemClassObject::AddRef() {
@@ -177,6 +180,11 @@ CeVIOProxyWbemClassObject::CeVIOProxyWbemClassObject(IWbemClassObject *pWbemClas
 
 	this->pWbemClassObj = pWbemClassObj;
 	debug_info(this->classname, "Initialized. pWbemClassObj: %p", pWbemClassObj);
+}
+
+CeVIOProxyWbemClassObject::~CeVIOProxyWbemClassObject() {
+	this->pWbemClassObj->Release();
+	debug_info(this->classname, "Released pWbemClassObj.");
 }
 
 ULONG CeVIOProxyWbemClassObject::AddRef() {

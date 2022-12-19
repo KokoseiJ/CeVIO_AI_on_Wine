@@ -26,6 +26,7 @@ private:
 public:
 	CeVIOProxyEnumWbemClassObject(IEnumWbemClassObject *pEnum);
 	CeVIOProxyEnumWbemClassObject(BSTR queryStr);
+	~CeVIOProxyEnumWbemClassObject();
 
 	ULONG AddRef();
 	HRESULT QueryInterface(REFIID riid, void **ppvObject);	
@@ -47,6 +48,7 @@ private:
 
 public:
 	CeVIOProxyWbemClassObject(IWbemClassObject *pWbemClassObj);
+	~CeVIOProxyWbemClassObject();
 
 	ULONG AddRef();
 	HRESULT QueryInterface(REFIID riid, void **ppvObject);
