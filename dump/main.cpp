@@ -88,7 +88,7 @@ IWbemServices *initialize_wbem() {
 	return pSvc;
 }
 
-void iter_keys(IEnumWbemClassObject *, int);
+Config *iter_keys(IEnumWbemClassObject *, int);
 void execute_query(int idx) {
 	static const BSTR wqlStr = SysAllocString(L"WQL");
 	static const long flags = WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY;
@@ -191,7 +191,7 @@ Config *iter_keys(IEnumWbemClassObject *pEnum, int idx) {
 		pWbemObj->Release();
 	}
 
-	return;
+	return NULL;
 }
 
 
