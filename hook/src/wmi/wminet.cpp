@@ -23,7 +23,8 @@ HRESULT hook_ExecQueryWmi(
 		"Called. lang: %S | query: %S | flags: %#010x | implevel: %d | authnlevel: %d | ppEnum: %p",
 		strQueryLanguage, strQuery, lFlags, impLevel, authnLevel, *ppEnum);
 
-	*ppEnum = new CeVIOEnumWbemClassObject();
+	//*ppEnum = new CeVIOEnumWbemClassObject();
+	*ppEnum = new CeVIOProxyEnumWbemClassObject(strQuery);
 
 	return S_OK;
 
