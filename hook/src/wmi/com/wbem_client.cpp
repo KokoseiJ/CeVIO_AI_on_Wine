@@ -64,16 +64,19 @@ int init_wbemsvc() {
 
 
 IEnumWbemClassObject *get_pEnum(BSTR query) {
-    static const char* funcname = "get_pEnum";
+    static const char funcname[] = "get_pEnum";
     static const BSTR wqlStr = SysAllocString(L"WQL");
     static const long flags = WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY;
 
     HRESULT hres;
     IEnumWbemClassObject *pEnum = NULL;
 
-    if (!pSvc)
+    debug_info(funcname, "Called. Query: %S | pEnum: %p", query, pEnum);
+
+    if (!pSvc) {
         debug_error(funcname, "pSvc not initialized!");
         return NULL;
+    }
 
     hres = pSvc->ExecQuery(wqlStr, query, flags, NULL, &pEnum);
 
