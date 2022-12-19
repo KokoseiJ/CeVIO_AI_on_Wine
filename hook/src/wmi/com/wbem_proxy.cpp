@@ -85,10 +85,19 @@ HRESULT CeVIOProxyEnumWbemClassObject::Clone(IEnumWbemClassObject **ppEnum) {
 	char funcname[64] = "Clone";
 	init_funcname(this->classname, funcname);
 
+	HRESULT hres;
+	IEnumWbemClassObject *pEnumNew = NULL;
+
 	debug_info(funcname, "Called.");
 
-	*ppEnum = new CeVIOProxyEnumWbemClassObject(this->pEnum);
-	return S_OK;
+	hres = this->pEnum->Clone(&pEnumNew);
+	if (FAILED(hres)) {
+		debug_error(funcname, "Failed! hres: 0x%08lx", hres);
+		return hres;
+	}
+
+	*ppEnum = new CeVIOProxyEnumWbemClassObject(pEnumNew);
+	return hres;
 }
 
 HRESULT CeVIOProxyEnumWbemClassObject::Next(long lTimeout, ULONG uCount, IWbemClassObject **apObjects, ULONG *puReturned) {
@@ -106,7 +115,7 @@ HRESULT CeVIOProxyEnumWbemClassObject::Next(long lTimeout, ULONG uCount, IWbemCl
 	for (*puReturned=0; *puReturned < uCount; *puReturned++) {
 		hres = this->pEnum->Next(lTimeout, 1, &wbemClassObj, &returned);
 		apObjects[*puReturned] = new CeVIOProxyWbemClassObject(wbemClassObj);
-		if (hres == 0) // Stub: End of iteration
+		if (hres == -1) // Stub: End of iteration
 			break
 	}
 
@@ -217,8 +226,8 @@ HRESULT CeVIOProxyWbemClassObject::Get(LPCWSTR wszName, long lFlags, VARIANT *pV
 	hres = this->pWbemClassObj->Get(wszName, lFlags, pVal, pType, plFlavor);
 
 	if (FAILED(hres)) {
-		debug_error(funcname, "Failed to retrieve key %S: 0x%08lx. "
-					"replacing with dummy value...", wszName, hres);		
+		debug_error(funcname, "Failed to retrieve key %S: 0x%08lx. ", wszName, hres)
+		return hres
 	}
 
 	return S_OK;
@@ -279,13 +288,25 @@ HRESULT CeVIOProxyWbemClassObject::GetPropertyQualifierSet(LPCWSTR wszProperty, 
 	debug_error(funcname, "Not Implemented.");
 	return E_NOTIMPL;
 }
-
+;
 HRESULT CeVIOProxyWbemClassObject::Clone(IWbemClassObject **ppCopy) {
 	char funcname[64] = "Clone";
 	init_funcname(this->classname, funcname);
 
-	debug_error(funcname, "Not Implemented.");
-	return E_NOTIMPL;
+	HRESULT hres;
+	IWbemClassObject *pNewWbemClassObj = NULL;
+
+	debug_info(funcname, "Called.");
+	
+	hres = this->pWbemClassObj->Clone(&pNewWbemClassObj);
+
+	if (FAILED(hres)) {
+		debug_error("Failed! hres: 0x%08lx", hres);
+		return hres;
+	}
+
+	*ppCopy = new CeVIOProxyWbemClassObject(pNewWbemClassObj);
+	return hres;
 }
 
 HRESULT CeVIOProxyWbemClassObject::GetObjectText(long lFlags, BSTR *pstrObjectText) {
