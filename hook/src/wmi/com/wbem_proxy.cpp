@@ -219,7 +219,10 @@ ULONG CeVIOProxyWbemClassObject::Release() {
 	char funcname[64] = "Release";
 	init_funcname_proxy(this->classname, funcname);
 
-	this->refcount--;
+	if (this->refcount == 0)
+		debug_error(funcname, "Called but refcount is already 0!");
+	else
+		this->refcount--;
 	debug_info(funcname, "Called. refcount: %lu", this->refcount);
 
 	if (this->refcount == 0) {
@@ -250,6 +253,33 @@ HRESULT CeVIOProxyWbemClassObject::Get(LPCWSTR wszName, long lFlags, VARIANT *pV
 
 	if (FAILED(hres)) {
 		debug_error(funcname, "Failed to retrieve key %S: 0x%08lx. ", wszName, hres);
+	
+		if (wcscmp(wszName, L"Caption") == 0) {
+			debug_info(funcname, "Key: Caption, applying dummy BSTR");
+			VariantInit(pVal);
+			// TODO: Change these to enum constants
+			pVal->vt = CIM_STRING;
+			*pType = CIM_STRING;
+			pVal->bstrVal = SysAllocString(L"Totally legit audio device");
+			return S_OK;
+		} else if (wcscmp(wszName, L"NetConnectionID") == 0) {
+			debug_info(funcname, "Key: NetConnectionID, applying dummy BSTR");
+			VariantInit(pVal);
+			pVal->vt = CIM_STRING;
+			*pType = CIM_STRING;
+			pVal->bstrVal = SysAllocString(L"Totally legit network device");
+			return S_OK;
+		} else if (wcscmp(wszName, L"NetEnabled") == 0) {
+			debug_info(funcname, "Key: NetEnabled, applying boolean value");
+			VariantInit(pVal);
+			pVal->vt = CIM_BOOLEAN;
+			*pType = CIM_BOOLEAN;
+			pVal->boolVal = true;
+			return S_OK;
+		} else {
+			debug_error(funcname, "Unknown key, please contact developer to have it added");
+		}
+
 		return hres;
 	}
 
