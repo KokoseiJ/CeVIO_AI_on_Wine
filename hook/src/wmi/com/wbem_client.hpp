@@ -15,6 +15,6 @@ extern "C" {
 
 
 int init_wbemsvc();
-IEnumWbemClassObject *get_pEnum(BSTR query);
+IEnumWbemClassObject *get_pEnum(BSTR query, long flags);
 
 #endif

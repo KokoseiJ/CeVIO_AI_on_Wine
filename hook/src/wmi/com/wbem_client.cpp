@@ -63,15 +63,14 @@ int init_wbemsvc() {
 }
 
 
-IEnumWbemClassObject *get_pEnum(BSTR query) {
+IEnumWbemClassObject *get_pEnum(BSTR query, long flags) {
     static const char funcname[] = "get_pEnum";
     static const BSTR wqlStr = SysAllocString(L"WQL");
-    static const long flags = WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY;
 
     HRESULT hres;
     IEnumWbemClassObject *pEnum = NULL;
 
-    debug_info(funcname, "Called. Query: %S | pEnum: %p", query, pEnum);
+    debug_info(funcname, "Called. Query: %S | flags: 0x%08lx", query, flags);
 
     if (!pSvc) {
         debug_error(funcname, "pSvc not initialized!");
@@ -84,6 +83,8 @@ IEnumWbemClassObject *get_pEnum(BSTR query) {
         debug_error(funcname, "ExecQuery failed. hres: 0x%08lx", hres);
         return NULL;
     }
+
+    debug_info(funcname, "pEnum: %p", pEnum);
 
     return pEnum;
 }

@@ -16,8 +16,8 @@ void init_funcname_proxy(const char *classname, char *funcname) {
 
 // CeVIOProxyEnumWbemClassObject Implementation
 
-CeVIOProxyEnumWbemClassObject::CeVIOProxyEnumWbemClassObject(BSTR query) {
-	IEnumWbemClassObject *pEnum = get_pEnum(query);
+CeVIOProxyEnumWbemClassObject::CeVIOProxyEnumWbemClassObject(BSTR query, long flags) {
+	IEnumWbemClassObject *pEnum = get_pEnum(query, flags);
 	if (pEnum == NULL) {
 		debug_error(this->classname, "pEnum is NULL!");
 	}
@@ -78,13 +78,16 @@ ULONG CeVIOProxyEnumWbemClassObject::Release() {
 	char funcname[64] = "Release";
 	init_funcname_proxy(this->classname, funcname);
 
-	this->refcount--;
+	if (this->refcount == 0)
+		debug_error(funcname, "Called but refcount is already 0!");
+	else
+		this->refcount--;
 	debug_info(funcname, "Called. refcount: %lu", this->refcount);
 
-	if (this->refcount == 0) {
-		delete this;
-		return 0;
-	}
+	//if (this->refcount == 0) {
+	//	delete this;
+	//	return 0;
+	//}
 
 	return this->refcount;
 }
@@ -233,10 +236,10 @@ ULONG CeVIOProxyWbemClassObject::Release() {
 		this->refcount--;
 	debug_info(funcname, "Called. refcount: %lu", this->refcount);
 
-	if (this->refcount == 0) {
-		delete this;
-		return 0;
-	}
+	//if (this->refcount == 0) {
+	//	delete this;
+	//	return 0;
+	//}
 
 	return this->refcount;
 }
@@ -269,26 +272,24 @@ HRESULT CeVIOProxyWbemClassObject::Get(LPCWSTR wszName, long lFlags, VARIANT *pV
 			pVal->vt = CIM_STRING;
 			*pType = CIM_STRING;
 			pVal->bstrVal = SysAllocString(L"Totally legit audio device");
-			return S_OK;
+			return WBEM_S_NO_ERROR;
 		} else if (wcscmp(wszName, L"NetConnectionID") == 0) {
 			debug_info(funcname, "Key: NetConnectionID, applying dummy BSTR");
 			VariantInit(pVal);
 			pVal->vt = CIM_STRING;
 			*pType = CIM_STRING;
 			pVal->bstrVal = SysAllocString(L"Totally legit network device");
-			return S_OK;
+			return WBEM_S_NO_ERROR;
 		} else if (wcscmp(wszName, L"NetEnabled") == 0) {
 			debug_info(funcname, "Key: NetEnabled, applying boolean value");
 			VariantInit(pVal);
 			pVal->vt = CIM_BOOLEAN;
 			*pType = CIM_BOOLEAN;
 			pVal->boolVal = true;
-			return S_OK;
+			return WBEM_S_NO_ERROR;
 		} else {
 			debug_error(funcname, "Unknown key, please contact developer to have it added");
 		}
-
-		return hres;
 	}
 
 	return hres;

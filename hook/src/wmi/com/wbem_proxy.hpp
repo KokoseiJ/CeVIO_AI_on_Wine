@@ -25,7 +25,7 @@ private:
 
 public:
 	CeVIOProxyEnumWbemClassObject(IEnumWbemClassObject *pEnum);
-	CeVIOProxyEnumWbemClassObject(BSTR queryStr);
+	CeVIOProxyEnumWbemClassObject(BSTR queryStr, long flags);
 	~CeVIOProxyEnumWbemClassObject();
 
 	ULONG AddRef();
