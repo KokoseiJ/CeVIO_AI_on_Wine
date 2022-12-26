@@ -24,8 +24,9 @@ char queries[][NAME_LEN][NAME_STR_LEN] {
 	{"Win32_OperatingSystem", "TotalVisibleMemorySize", "FreePhysicalMemory"},
 	{"Win32_Processor", "Name", "CurrentClockSpeed"},
 	{"Win32_VideoController", "Caption", "DriverVersion"},
-	{"Win32_SoundDevice", "Caption"},
-	{"Win32_NetworkAdapter", "Name", "NetConnectionID", "AdapterType", "PhysicalAdapter", "NetEnabled"}
+	{"Win32_SoundDevice", "Caption", "DeviceID"},
+	{"Win32_NetworkAdapter", "Name", "NetConnectionID", "AdapterType", "PhysicalAdapter", "NetEnabled"},
+	{"Win32_LogicalDisk", "VolumeSerialNumber"}
 };
 
 
@@ -108,6 +109,7 @@ void execute_query(int idx) {
 	}
 	strcat(queryStrBuilder, " from ");
 	strcat(queryStrBuilder, queries[idx][0]);
+	if (strcmp(queries[idx][0], "Win32_LogicalDisk") == 0) strcat(queryStrBuilder, " where DeviceID=\"C:\"");
 
 	mbstowcs(queryWstr, queryStrBuilder, QUERY_LEN);
 
