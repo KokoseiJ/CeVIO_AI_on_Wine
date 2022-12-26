@@ -91,10 +91,10 @@ int init_wminet() {
 	}
 
 
-	if (init_wbemsvc()) {
-		error_message("Failed to initialize IWbemService!");
-		return 1;
-	}
+	//if (init_wbemsvc()) {
+	//	error_message("Failed to initialize IWbemService!");
+	//	return 1;
+	//}
 
 	return 0;
 }

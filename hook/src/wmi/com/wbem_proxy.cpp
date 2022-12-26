@@ -17,6 +17,7 @@ void init_funcname_proxy(const char *classname, char *funcname) {
 // CeVIOProxyEnumWbemClassObject Implementation
 
 CeVIOProxyEnumWbemClassObject::CeVIOProxyEnumWbemClassObject(BSTR query, long flags) {
+	init_wbemsvc();
 	IEnumWbemClassObject *pEnum = get_pEnum(query, flags);
 	if (pEnum == NULL) {
 		debug_error(this->classname, "pEnum is NULL!");
@@ -119,7 +120,7 @@ HRESULT CeVIOProxyEnumWbemClassObject::Next(long lTimeout, ULONG uCount, IWbemCl
 	IWbemClassObject *wbemClassObj = NULL;
 	ULONG returned = 0;
 
-	debug_error(funcname, "Semi-Stub: Fix return code. "
+	debug_info(funcname, "Called."
 				"lTimeout: %ld, uCount: %ld, apObjects: %p",
 				lTimeout, uCount, apObjects);
 
