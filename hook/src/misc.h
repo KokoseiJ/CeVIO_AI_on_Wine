@@ -5,6 +5,7 @@
 #include <windows.h>
 
 const char *wine_get_version();
+const char *wine_get_host_version();
 
 #endif
 
