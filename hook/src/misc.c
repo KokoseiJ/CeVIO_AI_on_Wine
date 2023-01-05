@@ -2,28 +2,35 @@
 
 const char *wine_get_version() {
 	HMODULE ntdll = GetModuleHandle("ntdll.dll");
-	const char *returnval;
 
 	if (!ntdll) return NULL;
 
 	const char * (*orig_wine_get_version)() = (void *)GetProcAddress(ntdll, "wine_get_version");
 
-	returnval = orig_wine_get_version ? orig_wine_get_version() : NULL;
-
-	return returnval;
+	return orig_wine_get_version ? orig_wine_get_version() : NULL;
 }
 
 
-const char *wine_get_host_version() {
+int wine_get_host_version(const char **sysname, const char **release) {
 	HMODULE ntdll = GetModuleHandle("ntdll.dll");
-	const char *returnval;
 
-	if (!ntdll) return "(null)_nontdll";
+	if (!ntdll) return 1;
 
-	const char * (*orig_wine_get_host_version)() = (void *)GetProcAddress(ntdll, "wine_get_host_version");
+	void (*orig_wine_get_host_version)(const char **, const char **) = (void *)GetProcAddress(ntdll, "wine_get_host_version");
 
-	returnval = orig_wine_get_host_version ? orig_wine_get_host_version() : "(null)";
+	if (orig_wine_get_host_version) {
+		orig_wine_get_host_version(sysname, release);
+		return 0;
+	} else
+		return 1;
+}
 
-	return returnval;
+
+int is_linux() {
+	char *sysname = NULL;
+
+	wine_get_host_version(&sysname, NULL);
+
+	return strcmp(sysname, "Linux") == 0 ? 1 : 0;
 }
 

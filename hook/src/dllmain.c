@@ -142,10 +142,10 @@ int init_all() {
 }
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
-	const char *wine_version, *wine_host;
+	const char *wine_version, *wine_sysname, *wine_release;
 	if (fdwReason == DLL_PROCESS_ATTACH) {
 		wine_version = wine_get_version();
-		// wine_host = wine_get_host_version();
+		wine_get_host_version(&wine_sysname, &wine_release);
 		if (wine_version == NULL) {
 			error_message("This doesn't seem to be running on WINE!\nI refuse to run on non-UNIX system :P");
 			return TRUE;
@@ -153,7 +153,8 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
 		
 		if (init_all()) return FALSE;
 		debug_print("[*] Hello, World!\n");
-		// debug_printf("[*] Wine Version: %s\n    Host version: %s\n", wine_version, wine_host);
+		debug_printf("[*] Wine Version: %s\n    Host: %s | %s\n", wine_version, wine_sysname, wine_release);
+		debug_print(is_linux() ? "[*] Linux Detected!\n" : "[*] Mac Detected!\n");
 	}
 
 	return TRUE;
